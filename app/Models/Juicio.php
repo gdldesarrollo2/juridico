@@ -13,12 +13,12 @@ class Juicio extends Model
     ];
 
     protected $casts = [
-        'fecha_inicio' => 'date',
+        'fecha_inicio' => 'date:d/m/Y',
         'monto' => 'decimal:2',
     ];
 
     public function cliente(){ return $this->belongsTo(Cliente::class); }
     public function autoridad(){ return $this->belongsTo(Autoridad::class); }
-    public function etiquetas(){ return $this->belongsToMany(Etiqueta::class); }
+    public function etiquetas(){ return $this->belongsToMany(Etiqueta::class, 'etiqueta_juicio'); }
     public function abogado(){ return $this->belongsTo(Abogado::class); }
 }

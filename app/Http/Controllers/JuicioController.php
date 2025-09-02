@@ -164,7 +164,7 @@ public function store(Request $request)
     $juicio->etiquetas()->sync($etiquetas);
 
     return redirect()
-        ->route('Juicios.index')
+        ->route('juicios.index')
         ->with('success', 'Juicio creado correctamente.');
 }
 }

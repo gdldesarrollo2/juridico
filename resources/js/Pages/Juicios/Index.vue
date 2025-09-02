@@ -83,10 +83,10 @@ const fmtMoney = (v: any) => {
 }
 </script>
 
-<template>
-  <div class="p-6 space-y-6">
+<template >
+  <div class="p-6 space-y-6 bg-white">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">Juicios</h1>
+      <h1 class="text-2xl font-semibold text-black">Juicios</h1>
       <Link href="/juicios/create" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
         Nuevo
       </Link>
@@ -150,7 +150,7 @@ const fmtMoney = (v: any) => {
 
     <!-- Tabla -->
     <div class="bg-white rounded shadow overflow-x-auto">
-      <table class="min-w-full text-sm">
+      <table class="min-w-full text-sm text-black">
         <thead class="bg-gray-50">
           <tr>
             <th class="text-left px-4 py-2">Nombre</th>
@@ -205,7 +205,7 @@ const fmtMoney = (v: any) => {
         class="px-3 py-1 rounded border"
         :class="{
           'bg-gray-800 text-white border-gray-800': l.active,
-          'opacity-50 cursor-not-allowed': !l.url
+          'opacity-50 text-black  cursor-not-allowed': !l.url
         }"
         v-html="l.label"
       />
