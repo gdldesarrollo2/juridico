@@ -39,7 +39,7 @@ function submit() {
 
 <template>
   <div class="p-6 space-y-6">
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Nuevo Juicio</h1>
+    <h1 class="text-2xl font-semibold text-gray-900 dark:text-black-300">Nuevo Juicio</h1>
 
     <form @submit.prevent="submit" class="space-y-4 bg-white dark:bg-gray-800 rounded shadow p-6">
       <!-- Nombre -->

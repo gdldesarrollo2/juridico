@@ -21,4 +21,11 @@ class Juicio extends Model
     public function autoridad(){ return $this->belongsTo(Autoridad::class); }
     public function etiquetas(){ return $this->belongsToMany(Etiqueta::class, 'etiqueta_juicio'); }
     public function abogado(){ return $this->belongsTo(Abogado::class); }
+    public function etapas()
+    {
+        // Asegúrate de importar App\Models\Etapa
+        return $this->hasMany(\App\Models\Etapa::class)->latest('fecha_vencimiento');
+        // Si prefieres otro orden:
+        // return $this->hasMany(\App\Models\Etapa::class)->latest('id');
+    }
 }

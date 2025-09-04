@@ -87,7 +87,7 @@ const fmtMoney = (v: any) => {
   <div class="p-6 space-y-6 bg-white">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold text-black">Juicios</h1>
-      <Link href="/juicios/create" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+      <Link href="/juicios/create" class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-blue-700">
         Nuevo
       </Link>
     </div>
@@ -140,7 +140,7 @@ const fmtMoney = (v: any) => {
       </div>
 
       <div class="md:col-span-6 flex gap-2 justify-end">
-        <button @click="applyFilters()" class="px-4 py-2 rounded bg-gray-800 text-white hover:bg-black">Aplicar</button>
+        <button @click="applyFilters()" class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-black">Aplicar</button>
         <button class="px-4 py-2 rounded bg-gray-800 text-white hover:bg-black" @click="() => { q=''; cliente_id=null; etiqueta_id=null; estatus=undefined; fecha_desde=''; fecha_hasta=''; sort='-fecha_inicio'; applyFilters(); }"
               >
           Limpiar
@@ -159,6 +159,8 @@ const fmtMoney = (v: any) => {
             <th class="text-left px-4 py-2">Estatus</th>
             <th class="text-left px-4 py-2">Fecha inicio</th>
             <th class="text-right px-4 py-2">Monto</th>
+            <th class="text-right px-4 py-2">Acciones</th>
+
           </tr>
         </thead>
         <tbody>
@@ -186,6 +188,16 @@ const fmtMoney = (v: any) => {
             </td>
             <td class="px-4 py-2">{{ j.fecha_inicio ?? '—' }}</td>
             <td class="px-4 py-2 text-right">{{ fmtMoney(j.monto) }}</td>
+                      <!-- tbody, dentro del v-for -->
+            <td class="px-4 py-2 align-middle text-right">
+              <Link
+                :href="route('etapas.index', j.id)"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 whitespace-nowrap"
+              >
+                <span class="text-sm">＋</span>
+                Etapas
+              </Link>
+            </td>
           </tr>
 
           <tr v-if="props.juicios.data.length === 0">
@@ -204,7 +216,7 @@ const fmtMoney = (v: any) => {
         @click="goTo(l.url)"
         class="px-3 py-1 rounded border"
         :class="{
-          'bg-gray-800 text-white border-gray-800': l.active,
+          'bg-indigo-600 text-white border-gray-300': l.active,
           'opacity-50 text-black  cursor-not-allowed': !l.url
         }"
         v-html="l.label"
