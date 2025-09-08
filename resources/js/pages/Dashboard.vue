@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
+import AppLayout from '@/layouts/TopNavLayout.vue'
 
 const props = defineProps<{
   metrics: { total:number; proceso:number; autorizados:number; concluidos:number }
@@ -31,6 +32,8 @@ const fmtMoney = (v:any) => {
 </script>
 
 <template>
+    <AppLayout></AppLayout>
+
   <div class="p-6 space-y-6">
     <!-- Encabezado -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">

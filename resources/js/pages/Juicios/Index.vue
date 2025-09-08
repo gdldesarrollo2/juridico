@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, Link } from '@inertiajs/vue3'
 import { ref} from 'vue'
+import AppLayout from '@/layouts/TopNavLayout.vue'
 
 type Cat = { id:number; nombre:string }
 type Opcion = { value:string; label:string }
@@ -84,6 +85,7 @@ const fmtMoney = (v: any) => {
 </script>
 
 <template >
+  <AppLayout></AppLayout>
   <div class="p-6 space-y-6 bg-white">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold text-black">Juicios</h1>

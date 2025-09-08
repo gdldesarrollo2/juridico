@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
+import AppLayout from '@/layouts/TopNavLayout.vue'
 
 const props = defineProps<{
   catalogos: {
@@ -38,6 +39,7 @@ function submit() {
 </script>
 
 <template>
+  <AppLayout></AppLayout>
   <div class="p-6 space-y-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-black-300">Nuevo Juicio</h1>
 
@@ -133,6 +135,27 @@ function submit() {
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Observaciones monto</label>
         <textarea v-model="form.observaciones_monto"
+                  class="mt-1 w-full border rounded px-3 py-2
+                         bg-white text-gray-900
+                         dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"></textarea>
+      </div>
+        <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Resolución impugnada</label>
+        <textarea v-model="form.resolucion_impugnada"
+                  class="mt-1 w-full border rounded px-3 py-2
+                         bg-white text-gray-900
+                         dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"></textarea>
+      </div>
+        <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Numero de juicio</label>
+        <textarea v-model="form.numero_juicio"
+                  class="mt-1 w-full border rounded px-3 py-2
+                         bg-white text-gray-900
+                         dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"></textarea>
+      </div>
+         <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Garantía</label>
+        <textarea v-model="form.garantia"
                   class="mt-1 w-full border rounded px-3 py-2
                          bg-white text-gray-900
                          dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"></textarea>

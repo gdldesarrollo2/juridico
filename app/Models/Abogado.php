@@ -6,5 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Abogado extends Model
 {
-    protected $fillable=['nombre']; 
+    protected $table = 'abogados';
+
+    protected $fillable = [
+        'nombre',
+        'estatus',
+        'usuario_id',
+    ];
+
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
 }
