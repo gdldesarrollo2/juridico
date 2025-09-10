@@ -8,6 +8,8 @@ use App\Http\Controllers\EtapaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\AbogadoController;
+use App\Http\Controllers\RevisionController;
+use App\Http\Controllers\RevisionEtapaController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -35,5 +37,11 @@ Route::resource('abogados', AbogadoController::class)->except(['show']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+Route::resource('revisiones', RevisionController::class)->except(['show']);// Etapas de una revisión
+
+Route::post('revisiones/{revision}/etapas',        [RevisionEtapaController::class, 'store'])->name('revisiones.etapas.store');
+Route::put('revisiones/{revision}/etapas/{etapa}', [RevisionEtapaController::class, 'update'])->name('revisiones.etapas.update');
+Route::delete('revisiones/{revision}/etapas/{etapa}', [RevisionEtapaController::class, 'destroy'])->name('revisiones.etapas.destroy');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

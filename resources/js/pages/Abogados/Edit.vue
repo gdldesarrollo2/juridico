@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
-import TopNavLayout from '@/Layouts/TopNavLayout.vue'
+import TopNavLayout from '@/layouts/TopNavLayout.vue'
 
 const props = defineProps<{
   abogado: { id:number; nombre:string; estatus:'activo'|'inactivo' }
