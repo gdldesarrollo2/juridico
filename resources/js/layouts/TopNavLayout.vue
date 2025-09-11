@@ -11,6 +11,7 @@ const nav = [
   { label: 'Juicios',   to: '/juicios' },
   { label: 'Clientes',  to: '/clientes' },
   { label: 'Abogados',  to: '/abogados' },
+  { label: 'Revisiones',  to: '/revisiones' },
 
   // agrega más aquí…
 ]

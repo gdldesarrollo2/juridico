@@ -37,11 +37,17 @@ Route::resource('abogados', AbogadoController::class)->except(['show']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
-Route::resource('revisiones', RevisionController::class)->except(['show']);// Etapas de una revisión
-
-Route::post('revisiones/{revision}/etapas',        [RevisionEtapaController::class, 'store'])->name('revisiones.etapas.store');
-Route::put('revisiones/{revision}/etapas/{etapa}', [RevisionEtapaController::class, 'update'])->name('revisiones.etapas.update');
-Route::delete('revisiones/{revision}/etapas/{etapa}', [RevisionEtapaController::class, 'destroy'])->name('revisiones.etapas.destroy');
-
+Route::middleware(['auth'])->group(function () {
+    Route::resource('revisiones', RevisionController::class)
+        ->parameters(['revisiones' => 'revision']) // 👈 fuerza {revision}
+        ->except(['show']);
+});
+//Route::post('revisiones/{revision}/etapas',        [RevisionEtapaController::class, 'store'])->name('revisiones.etapas.store');
+Route::middleware(['auth','verified'])->group(function () {
+    // Etapas anidadas a la revisión
+    Route::get('/revisiones/{revision}/etapas',        [RevisionEtapaController::class, 'index'])->name('revisiones.etapas.index');
+    Route::post('/revisiones/{revision}/etapas',       [RevisionEtapaController::class, 'store'])->name('revisiones.etapas.store');
+    Route::put('/revisiones/etapas/{etapa}',           [RevisionEtapaController::class, 'update'])->name('revisiones.etapas.update');
+});
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

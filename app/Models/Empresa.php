@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Empresa extends Model
 {
     protected $table = 'empresas';
-
-    protected $fillable = ['idempresa',
+    protected $primaryKey = 'idempresa';
+    public $incrementing = true;
+    protected $keyType = 'int';
+    protected $fillable = [
         'rfc','razonsocial','empabrevia','tiposociedad','tipoesquema','activo',
         'replegal','domicilio','colonia','ciudad','estado','pais','codpostal',
         'tipo','recibos','factura','fintegracion','calle','exterior','interior',

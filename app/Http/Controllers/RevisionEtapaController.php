@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/RevisionEtapaController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Revision;
@@ -8,76 +8,95 @@ use App\Models\Abogado;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class RevisionEtapaController extends Controller
 {
-  public function index(Revision $revision)
-  {
-    $revision->load(['cliente:id,nombre']);
-    $etapas = $revision->etapas()->with(['abogado:id,nombre','usuario:id,name'])->get();
+    public function index(Revision $revision)
+    {
+        // catálogos (ajusta a tus tablas reales)
+        $catalogoEtapas = \DB::table('catalogo_etapas')
+            ->select('id','nombre')
+           ->get();
 
-    return Inertia::render('Revisiones/Etapas', [
-      'revision' => $revision,
-      'etapas'   => $etapas,
-      'abogados' => Abogado::orderBy('nombre')->get(['id','nombre']),
-      'sugeridas'=> [
-        ['orden'=>1,'nombre'=>'Atención de primer requerimiento'],
-        ['orden'=>2,'nombre'=>'Solicitud de prórroga'],
-        ['orden'=>3,'nombre'=>'Entrega de documentación'],
-      ],
-    ]);
-  }
+        $estatus = ['PENDIENTE','ATENDIDO','CANCELADO'];
 
-  public function store(Request $request, Revision $revision)
-  {
-    $data = $request->validate([
-      'orden'            => ['required','integer','min:1'],
-      'nombre'           => ['required','string','max:255'],
-      'fecha_inicio'     => ['nullable','date'],
-      'dias_vencimiento' => ['nullable','integer','min:1'],
-      'comentarios'      => ['nullable','string'],
-      'estatus'          => ['required','in:pendiente,atendido,en_proceso,cerrado'],
-      'abogado_id'       => ['nullable','exists:abogados,id'],
-    ]);
+        $abogados = Abogado::query()
+            ->select('id','nombre')
+            ->orderBy('nombre')
+            ->get();
 
-    $data['usuario_id'] = auth()->id();
+        // historial de etapas
+        $etapas = $revision->etapas()
+            ->with('usuarioCaptura:id,name')
+            ->orderByDesc('fecha_inicio')
+            ->get()
+            ->map(function ($e){
+                return [
+                    'id' => $e->id,
+                    'nombre' => $e->nombre, // NUEVO
+                    'etapa' => $e->catalogo_etapa_id, // el componente lo resolverá a nombre
+                    'fecha_inicio' => optional($e->fecha_inicio)->format('d/m/Y'),
+                    'fecha_vencimiento' => optional($e->fecha_vencimiento)->format('d/m/Y'),
+                    'estatus' => $e->estatus,
+                    'comentarios' => $e->comentarios,
+                    'usuario' => optional($e->usuarioCaptura)->name
+                ];
+            });
 
-    // calcula fecha de vencimiento si aplica
-    if (!empty($data['fecha_inicio']) && !empty($data['dias_vencimiento'])) {
-      $data['vence'] = Carbon::parse($data['fecha_inicio'])->addDays((int)$data['dias_vencimiento']);
+        return Inertia::render('RevisionEtapas/CrearEtapa', [
+            'revision' => [
+                'id' => $revision->id,
+                'empresa' => $revision->empresa,
+            ],
+            'catalogoEtapas' => $catalogoEtapas,
+            'estatus' => $estatus,
+            'abogados' => $abogados,
+            'historial' => $etapas,
+        ]);
     }
 
-    $revision->etapas()->create($data);
+    public function store(Request $request, Revision $revision)
+    {
+        $data = $request->validate([
+            'nombre'             => ['required','string','max:255'], // NUEVO
+            'catalogo_etapa_id'  => ['required','integer','exists:catalogo_etapas,id'],
+            'fecha_inicio'       => ['required','date'],
+            'dias_vencimiento'   => ['required','integer','min:0','max:3650'],
+            'comentarios'        => ['nullable','string','max:2000'],
+            'estatus'            => ['required', Rule::in(['PENDIENTE','ATENDIDO','CANCELADO'])],
+            'abogado_id'         => ['nullable','integer','exists:users,id'],
+        ]);
 
-    return back()->with('success','Etapa creada.');
-  }
+        $inicio = Carbon::parse($data['fecha_inicio']);
+        $vence  = (clone $inicio)->addDays($data['dias_vencimiento']);
 
-  public function update(Request $request, Revision $revision, RevisionEtapa $etapa)
-  {
-    $data = $request->validate([
-      'orden'            => ['required','integer','min:1'],
-      'nombre'           => ['required','string','max:255'],
-      'fecha_inicio'     => ['nullable','date'],
-      'dias_vencimiento' => ['nullable','integer','min:1'],
-      'comentarios'      => ['nullable','string'],
-      'estatus'          => ['required','in:pendiente,atendido,en_proceso,cerrado'],
-      'abogado_id'       => ['nullable','exists:abogados,id'],
-    ]);
+        RevisionEtapa::create([
+            'revision_id'         => $revision->id,
+            'nombre'              => $data['nombre'] ?? null, // NUEVO
+            'catalogo_etapa_id'   => $data['catalogo_etapa_id'],
+            'fecha_inicio'        => $inicio,
+            'dias_vencimiento'    => $data['dias_vencimiento'],
+            'fecha_vencimiento'   => $vence,
+            'comentarios'         => $data['comentarios'] ?? null,
+            'estatus'             => $data['estatus'],
+            'abogado_id'          => $data['abogado_id'] ?? null,
+            'usuario_captura_id'  => $request->user()->id,
+        ]);
 
-    if (!empty($data['fecha_inicio']) && !empty($data['dias_vencimiento'])) {
-      $data['vence'] = \Illuminate\Support\Carbon::parse($data['fecha_inicio'])->addDays((int)$data['dias_vencimiento']);
-    } else {
-      $data['vence'] = null;
+        return back()->with('success','Etapa registrada');
     }
 
-    $etapa->update($data);
+    public function update(Request $request, RevisionEtapa $etapa)
+    {
+        $data = $request->validate([
+            'nombre'       => ['sometimes','string','max:255'], // opcional en update
+            'estatus'      => ['required', Rule::in(['PENDIENTE','ATENDIDO','CANCELADO'])],
+            'comentarios'  => ['nullable','string','max:2000'],
+        ]);
 
-    return back()->with('success','Etapa actualizada.');
-  }
+        $etapa->update($data);
 
-  public function destroy(Revision $revision, RevisionEtapa $etapa)
-  {
-    $etapa->delete();
-    return back()->with('success','Etapa eliminada.');
-  }
+        return back()->with('success','Etapa actualizada');
+    }
 }

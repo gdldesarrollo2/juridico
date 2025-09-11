@@ -62,9 +62,9 @@ function submit(){ form.post(route('revisiones.store')) }
         <div class="grid md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium">Sociedad</label>
-            <select v-model="form.idempresa" class="mt-1 w-full border rounded px-3 py-2">
+            <select v-model="form.idempresa" class="mt-1 w-full border rounded px-3 py-2 ">
               <option value="">Seleccione…</option>
-              <option v-for="c in props.empresas" :value="c.id" :key="c.id">{{ c.nombre }}</option>
+              <option v-for="c in props.empresas" :value="c.idempresa" :key="c.id">{{ c.razonsocial }}</option>
             </select>
             <p v-if="form.errors.idempresa" class="text-xs text-red-600">{{ form.errors.idempresa }}</p>
           </div>
