@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3'
-import TopNavLayout from '@/Layouts/TopNavLayout.vue'
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 
 const props = defineProps<{
   abogados: {
