@@ -207,13 +207,13 @@ const fmtMoney = (v: any) => {
               <td class="px-4 py-2 text-right">{{ fmtMoney(j.monto) }}</td>
               <td class="px-4 py-2 align-middle text-right">
                 <!-- Ajusta a tu nombre de ruta real -->
-                <Link
-                  :href="route?.('juicios.etapas.index', j.id) ?? `/juicios/${j.id}/etapas`"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 whitespace-nowrap"
-                >
-                  <span class="text-sm">＋</span>
-                  Etapas
-                </Link>
+            <Link
+:href="route?.('juicios.etapas.index', { juicio: j.id }) ?? `/juicios/${j.id}/etapas`"
+  class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 whitespace-nowrap"
+>
+  <span class="text-sm">＋</span>
+  Etapas
+</Link>
               </td>
             </tr>
 

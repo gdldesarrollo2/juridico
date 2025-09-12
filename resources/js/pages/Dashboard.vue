@@ -94,13 +94,13 @@ const fmtMoney = (v:any) => {
                 <td class="py-2 font-medium text-gray-900 dark:text-gray-100">{{ e.etapa }}</td>
                 <td class="py-2 font-medium text-gray-900 dark:text-gray-100">{{ e.etiqueta?.nombre ?? '—' }}</td>
                 <td class="py-2 font-medium text-gray-900 dark:text-gray-100">
-                  <Link v-if="e.juicio" :href="route('etapas.index', e.juicio.id)"
+                  <Link v-if="e.juicio" :href="route('juicios.etapas.index', e.juicio.id)"
                         class="text-indigo-600 hover:underline">
                     {{ e.juicio.nombre ?? ('#'+e.juicio.id) }}
                   </Link>
                 </td>
                 <td class="py-2 text-right">
-                  <Link v-if="e.juicio" :href="route('etapas.index', e.juicio.id)"
+                  <Link v-if="e.juicio" :href="route('juicios.etapas.index', e.juicio.id)"
                         class="inline-flex items-center px-2 py-1 rounded border text-xs dark:border-gray-600 dark:text-gray-100">
                     Ver
                   </Link>
@@ -140,7 +140,7 @@ const fmtMoney = (v:any) => {
                 <td class="py-2 font-medium text-gray-900 dark:text-gray-100">{{ j.cliente?.nombre ?? '—' }}</td>
                 <td class="py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ fmtMoney(j.monto) }}</td>
                 <td class="py-2 text-right">
-                  <Link :href="route('etapas.index', j.id)"
+                  <Link :href="route('juicios.etapas.index', j.id)"
                         class="inline-flex items-center px-2 py-1 rounded border text-xs dark:border-gray-600 dark:text-gray-100">
                     Etapas
                   </Link>
