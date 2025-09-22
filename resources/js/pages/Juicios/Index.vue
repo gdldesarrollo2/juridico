@@ -13,6 +13,8 @@ const props = defineProps<{
     data: Array<{
       id:number
       nombre:string
+      tipo:string
+      numero_juicio:string
       cliente?: { id:number, nombre:string } | null
       autoridad?: { id:number, nombre:string } | null
       abogado?: { id:number, nombre:string } | null
@@ -86,7 +88,8 @@ const fmtMoney = (v: any) => {
 
 <template>
   <!-- TODO: todo el contenido va DENTRO del layout -->
-  <AppLayout>
+  <AppLayout>  </AppLayout>
+
     <div class="p-6 space-y-6 bg-white">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-semibold text-black">Juicios</h1>
@@ -171,8 +174,10 @@ const fmtMoney = (v: any) => {
         <table class="min-w-full text-sm text-black">
           <thead class="bg-gray-50">
             <tr>
+              <th class="text-left px-4 py-2">Numero de juicio</th>
               <th class="text-left px-4 py-2">Nombre</th>
               <th class="text-left px-4 py-2">Cliente</th>
+               <th class="text-left px-4 py-2">Tipo</th>
               <th class="text-left px-4 py-2">Etiqueta(s)</th>
               <th class="text-left px-4 py-2">Estatus</th>
               <th class="text-left px-4 py-2">Fecha inicio</th>
@@ -182,11 +187,15 @@ const fmtMoney = (v: any) => {
           </thead>
           <tbody>
             <tr v-for="j in props.juicios.data" :key="j.id" class="border-t">
+             <td class="px-4 py-2">{{ j.numero_juicio ?? '—' }}</td>
+
               <td class="px-4 py-2">
                 <div class="font-medium">{{ j.nombre }}</div>
                 <div class="text-gray-500 text-xs">#{{ j.id }}</div>
               </td>
               <td class="px-4 py-2">{{ j.cliente?.nombre ?? '—' }}</td>
+              <td class="px-4 py-2">{{ j.tipo ?? '—' }}</td>
+
               <td class="px-4 py-2">
                 <div class="flex flex-wrap gap-1">
                   <span v-for="et in j.etiquetas" :key="et.id" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 border">{{ et.nombre }}</span>
@@ -241,5 +250,4 @@ const fmtMoney = (v: any) => {
         />
       </div>
     </div>
-  </AppLayout>
 </template>

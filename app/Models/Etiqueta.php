@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Etiqueta extends Model
 {
-     protected $table = 'etiquetas'; // 👈 no pongas 'etiqueta_juicio' aquí
+     protected $table = 'etiquetas'; 
      protected $fillable=['nombre']; 
 
     public function juicios()
     {
-        return $this->belongsToMany(Juicio::class, 'etiqueta_juicio');
+        return $this->belongsToMany(Etiqueta::class, 'etiqueta_juicio', 'juicio_id', 'etiqueta_id')->withTimestamps(); // solo si tu pivote tiene timestamps
     }
 }
