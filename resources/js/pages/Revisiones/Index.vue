@@ -33,12 +33,14 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
  <TopNavLayout></TopNavLayout>
  <Link
         :href="route('revisiones.create')"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+        class="rounded-md bg-indigo-600 py-1.5 px-3 border border-transparent text-center text-sm text-white transition-all shadow-sm hover:shadow focus:bg-indigo-700 focus:shadow-none active:bg-indigo-700 hover:bg-indigo-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
       >
         <span class="text-lg">＋</span>
         Nueva revisión
       </Link>
+      
   <div class="bg-white rounded shadow overflow-x-auto">
+    <br>
     <table class="min-w-full text-sm">
       <thead class="bg-gray-50">
         <tr>

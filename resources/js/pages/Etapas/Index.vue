@@ -38,7 +38,7 @@ const form = useForm({
 })
 
 function submit() {
-  form.post(route('etapas.store', props.juicio.id), { forceFormData: true })
+  form.post(route('juicios.etapas.store', props.juicio.id), { forceFormData: true })
 }
 
 const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date(v)) : '—'

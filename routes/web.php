@@ -18,16 +18,18 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+    
 Route::get('/juicios', [JuicioController::class, 'index'])->name('juicios.index');
 Route::get('/juicios/create', [JuicioController::class, 'create'])->name('juicios.create');
 Route::post('/juicios', [JuicioController::class, 'store'])->name('juicios.store');
 Route::prefix('juicios/{juicio}')->group(function () {
-    Route::get('etapas', [EtapaController::class, 'index'])->name('etapas.index');
-    Route::post('etapas', [EtapaController::class, 'store'])->name('etapas.store');
-    // (opcional) editar/eliminar más tarde:
-    // Route::put('etapas/{etapa}', [EtapaController::class, 'update'])->name('etapas.update');
-    // Route::delete('etapas/{etapa}', [EtapaController::class, 'destroy'])->name('etapas.destroy');
+    Route::get('etapas', [EtapaController::class, 'index'])
+        ->name('juicios.etapas.index');   // <- agrega el prefijo en el nombre
+    Route::post('etapas', [EtapaController::class, 'store'])
+        ->name('juicios.etapas.store');
 });
+
+
 Route::prefix('clientes')->group(function () {
     Route::get('/', [ClienteController::class, 'index'])->name('clientes.index');      // opcional
     Route::get('/create', [ClienteController::class, 'create'])->name('clientes.create');
