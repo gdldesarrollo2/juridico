@@ -10,6 +10,7 @@ const props = defineProps<{
       idempresa?: number|null
       empresa?: { id:number, razonsocial:string } | null
       autoridad?: { id:number, nombre:string } | null
+      revision: string
       periodo_desde?: string|null
       periodo_hasta?: string|null
       rev_gabinete?: boolean
@@ -47,6 +48,7 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
           <th class="text-left px-4 py-2">Tipo</th>
           <th class="text-left px-4 py-2">Sociedad</th>
           <th class="text-left px-4 py-2">Autoridad</th>
+          <th class="text-left px-4 py-2">Nombre</th>
           <th class="text-left px-4 py-2">Periodo</th>
           <th class="text-left px-4 py-2">Estatus</th>
           <th class="text-right px-4 py-2">Acciones</th>
@@ -71,6 +73,9 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
           <!-- Autoridad -->
           <td class="px-4 py-2">
             {{ rev.autoridad?.nombre ?? '—' }}
+          </td>
+           <td class="px-4 py-2">
+            {{ rev.revision ?? '—' }}
           </td>
 
           <!-- Periodo -->

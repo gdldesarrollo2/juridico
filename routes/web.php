@@ -28,6 +28,9 @@ Route::prefix('juicios/{juicio}')->group(function () {
     Route::post('etapas', [EtapaController::class, 'store'])
         ->name('juicios.etapas.store');
 });
+// Si no quieres usar resource, al menos define:
+Route::get('/juicios/{juicio}/edit', [JuicioController::class, 'edit'])->name('juicios.edit');
+Route::put('/juicios/{juicio}', [JuicioController::class, 'update'])->name('juicios.update');
 
 
 Route::prefix('clientes')->group(function () {

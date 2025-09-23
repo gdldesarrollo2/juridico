@@ -9,9 +9,29 @@ use App\Models\Cliente;
 use App\Models\Autoridad;
 use App\Models\Abogado;
 use App\Models\Etiqueta;
+use Illuminate\Support\Facades\DB;   
 
 class JuicioController extends Controller
 {
+     protected function rules(): array
+    {
+        return [
+            'nombre'               => ['required', 'string', 'max:255'],
+            'cliente_id'           => ['required', 'exists:clientes,id'],
+            'autoridad_id'         => ['nullable', 'exists:autoridades,id'],
+            'fecha_inicio'         => ['nullable', 'date'],
+            'monto'                => ['nullable', 'numeric', 'min:0'],
+            'observaciones_monto'  => ['nullable', 'string'],
+            'resolucion_impugnada' => ['nullable', 'string', 'max:255'],
+            'garantia'             => ['nullable', 'string', 'max:255'],
+            'numero_juicio'        => ['nullable', 'string', 'max:255'],
+            'numero_expediente'    => ['nullable', 'string', 'max:255'],
+           // 'estatus'              => ['required', Rule::in(['juicio','autorizado','en_proceso','concluido'])],
+            'abogado_id'           => ['nullable', 'exists:abogados,id'],
+            'etiquetas'            => ['nullable','array'],
+            'etiquetas.*'          => ['integer','exists:etiquetas,id'],
+        ];
+    }
     /**
      * Listado con filtros y paginación
      */
@@ -105,30 +125,20 @@ class JuicioController extends Controller
     /**
      * Mostrar formulario de creación de Juicio
      */
-    public function create()
-    {
-        return Inertia::render('Juicios/Create', [
-            'catalogos' => [
-                'clientes'    => Cliente::orderBy('nombre')->get(['id', 'nombre']),
-                'autoridades' => Autoridad::orderBy('nombre')->get(['id', 'nombre']),
-                'abogados'    => Abogado::orderBy('nombre')->get(['id', 'nombre']),
-                'etiquetas'   => Etiqueta::orderBy('nombre')->get(['id', 'nombre']),
-                'tipos'       => [
-                    ['value' => 'nulidad',    'label' => 'Juicio de Nulidad'],
-                    ['value' => 'revocacion', 'label' => 'Recurso de Revocación'],
-                ],
-                'estatuses'   => [
-                    ['value' => 'juicio',     'label' => 'JUICIO'],
-                    ['value' => 'autorizado', 'label' => 'Autorizado'],
-                    ['value' => 'en_proceso', 'label' => 'En proceso'],
-                    ['value' => 'concluido',  'label' => 'Concluido'],
-                ],
-            ],
-            'defaults' => [
-                'estatus' => 'juicio',
-            ],
-        ]);
-    }
+   public function create()
+{
+    $clientes    = \App\Models\Cliente::select('id','nombre')->orderBy('nombre')->get();
+    $autoridades = \App\Models\Autoridad::select('id','nombre')->orderBy('nombre')->get();
+    $abogados    = \App\Models\Abogado::select('id','nombre')->orderBy('nombre')->get();
+    $etiquetas   = \App\Models\Etiqueta::select('id','nombre')->orderBy('nombre')->get();
+
+    return Inertia::render('Juicios/Create', [
+        'clientes'    => $clientes,     // <- ARRAY de objetos [{id,nombre},...]
+        'autoridades' => $autoridades,
+        'abogados'    => $abogados,
+        'etiquetas'   => $etiquetas,
+    ]);
+}
 
     /**
      * Guardar un nuevo Juicio en la base de datos
@@ -167,4 +177,61 @@ public function store(Request $request)
         ->route('juicios.index')
         ->with('success', 'Juicio creado correctamente.');
 }
+ // Formulario de edición
+ public function edit(Juicio $juicio)
+{
+    $clientes    = Cliente::select('id','nombre')->orderBy('nombre')->get();
+    $autoridades = Autoridad::select('id','nombre')->orderBy('nombre')->get();
+    $abogados    = Abogado::select('id','nombre')->orderBy('nombre')->get();
+    $etiquetas   = Etiqueta::select('id','nombre')->orderBy('nombre')->get();
+
+    return Inertia::render('Juicios/Edit', [
+        'juicio' => [
+            'id' => $juicio->id,                          // ← MUY IMPORTANTE
+            'nombre' => $juicio->nombre,
+            'tipo' => $juicio->tipo,                       // 'nulidad' | 'revocacion'
+            'cliente_id' => $juicio->cliente_id,
+            'autoridad_id' => $juicio->autoridad_id,
+            'fecha_inicio' => optional($juicio->fecha_inicio)?->format('Y-m-d'), // ← para <input type="date">
+            'monto' => $juicio->monto,
+            'observaciones_monto' => $juicio->observaciones_monto,
+            'resolucion_impugnada' => $juicio->resolucion_impugnada,
+            'garantia' => $juicio->garantia,
+            'numero_juicio' => $juicio->numero_juicio,
+            'numero_expediente' => $juicio->numero_expediente,
+            'estatus' => $juicio->estatus,                 // 'juicio' | 'autorizado' | 'en_proceso' | 'concluido'
+            'abogado_id' => $juicio->abogado_id,
+        ],
+        'clientes' => $clientes,
+        'autoridades' => $autoridades,
+        'abogados' => $abogados,
+        'etiquetas' => $etiquetas,
+        'etiquetasSeleccionadas' => $juicio->etiquetas()->pluck('etiquetas.id'),
+    ]);
+}
+    // Actualización (datos base + pivot etiquetas)
+    public function update(Request $request, Juicio $juicio)
+    {
+        $validated = $request->validate($this->rules());
+
+        // Separa etiquetas del resto
+        $etiquetas = $validated['etiquetas'] ?? null; // null = no tocar; [] = vaciar
+        unset($validated['etiquetas']);
+
+        DB::transaction(function () use ($juicio, $validated, $etiquetas) {
+            // Actualiza campos simples
+            $juicio->fill($validated)->save();
+
+            // Manejo de pivot:
+            // - Si viene null: no cambiar etiquetas
+            // - Si viene array: sincroniza exactamente esas (incluye vacío para limpiar)
+            if (is_array($etiquetas)) {
+                $juicio->etiquetas()->sync($etiquetas);
+            }
+        });
+
+        return redirect()
+            ->route('juicios.index')
+            ->with('success', 'Juicio actualizado correctamente.');
+    }
 }
