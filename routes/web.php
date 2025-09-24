@@ -10,6 +10,8 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\AbogadoController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RevisionEtapaController;
+use App\Http\Controllers\CalendarioController;
+
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -53,6 +55,10 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::get('/revisiones/{revision}/etapas',        [RevisionEtapaController::class, 'index'])->name('revisiones.etapas.index');
     Route::post('/revisiones/{revision}/etapas',       [RevisionEtapaController::class, 'store'])->name('revisiones.etapas.store');
     Route::put('/revisiones/etapas/{etapa}',           [RevisionEtapaController::class, 'update'])->name('revisiones.etapas.update');
+});
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
+    Route::post('/calendario/upload', [CalendarioController::class, 'upload'])->name('calendario.upload');
 });
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
