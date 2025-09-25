@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
+type TipoRevision = 'gabinete' | 'visita' | 'electronica' | 'secuencial'
 const props = defineProps<{
+ catalogoRevision: Record<TipoRevision, string[]>
   empresas: Array<{ id:number, nombre:string }>
   autoridades: Array<{id:number,nombre:string}>
   etiquetas: Array<{id:number,nombre:string}>
@@ -11,6 +14,7 @@ const props = defineProps<{
 
 const form = useForm({
   idempresa: '',
+  tipo_revision: '' as TipoRevision | '',
   autoridad_id: '',
   revision: '',
   rev_gabinete: false,
@@ -25,6 +29,15 @@ const form = useForm({
   compulsas: '',
   estatus: props.defaults.estatus,
   etiquetas: [] as number[],
+})
+const opcionesRevision = computed(() => {
+  return form.tipo_revision ? (props.catalogoRevision[form.tipo_revision] ?? []) : []
+})
+// Cuando cambia el tipo, resetea la revisión si ya no es válida
+watch(() => form.tipo_revision, () => {
+  if (!opcionesRevision.value.includes(form.revision)) {
+    form.revision = opcionesRevision.value[0] ?? ''
+  }
 })
 
 function submit(){ form.post(route('revisiones.store')) }
@@ -48,15 +61,43 @@ function submit(){ form.post(route('revisiones.store')) }
         </div>
 
         <!-- Tipo -->
-        <div>
-          <label class="block text-sm font-medium">Tipo</label>
-          <div class="flex flex-wrap gap-4 mt-1">
-            <label class="inline-flex gap-2 items-center"><input type="checkbox" v-model="form.rev_gabinete" class="rounded border-gray-300"> Revisión de gabinete</label>
-            <label class="inline-flex gap-2 items-center"><input type="checkbox" v-model="form.rev_domiciliaria" class="rounded border-gray-300"> Visita domiciliaria</label>
-            <label class="inline-flex gap-2 items-center"><input type="checkbox" v-model="form.rev_electronica" class="rounded border-gray-300"> Revisión electrónica</label>
-            <label class="inline-flex gap-2 items-center"><input type="checkbox" v-model="form.rev_secuencial" class="rounded border-gray-300"> Revisión secuencial</label>
-          </div>
-        </div>
+      <div>
+  <label class="block text-sm font-medium">Tipo</label>
+  <div class="mt-1 flex flex-wrap gap-6">
+    <label class="inline-flex items-center gap-2">
+      <input type="radio" value="gabinete" v-model="form.tipo_revision" />
+      <span>Revisión de gabinete</span>
+    </label>
+    <label class="inline-flex items-center gap-2">
+      <input type="radio" value="visita" v-model="form.tipo_revision" />
+      <span>Visita domiciliaria</span>
+    </label>
+    <label class="inline-flex items-center gap-2">
+      <input type="radio" value="electronica" v-model="form.tipo_revision" />
+      <span>Revisión electrónica</span>
+    </label>
+    <label class="inline-flex items-center gap-2">
+      <input type="radio" value="secuencial" v-model="form.tipo_revision" />
+      <span>Revisión secuencial</span>
+    </label>
+  </div>
+  <p v-if="form.errors.tipo_revision" class="text-red-600 text-xs mt-1">
+    {{ form.errors.tipo_revision }}
+  </p>
+</div>
+
+<!-- Revisión (select dependiente) -->
+<div>
+  <label class="block text-sm font-medium">Revisión</label>
+  <select v-model="form.revision" :disabled="!form.tipo_revision"
+          class="mt-1 w-full border rounded px-3 py-2">
+    <option v-if="!form.tipo_revision" value="">Selecciona el tipo de revisión…</option>
+    <option v-for="op in opcionesRevision" :key="op" :value="op">{{ op }}</option>
+  </select>
+  <p v-if="form.errors.revision" class="text-red-600 text-xs mt-1">
+    {{ form.errors.revision }}
+  </p>
+</div>
 
         <!-- Sociedad / Autoridad -->
         <div class="grid md:grid-cols-2 gap-4">
@@ -77,11 +118,7 @@ function submit(){ form.post(route('revisiones.store')) }
           </div>
         </div>
 
-        <!-- Revisión -->
-        <div>
-          <label class="block text-sm font-medium">Revisión</label>
-          <input v-model="form.revision" type="text" class="mt-1 w-full border rounded px-3 py-2" placeholder="Escriba…">
-        </div>
+       
 
         <!-- Periodo -->
         <div class="grid md:grid-cols-2 gap-4">
