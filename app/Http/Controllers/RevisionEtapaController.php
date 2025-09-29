@@ -58,6 +58,15 @@ class RevisionEtapaController extends Controller
 
     public function store(Request $request, Revision $revision)
     {
+        $tipos = ['gabinete','domiciliaria','electronica','secuencial'];
+
+    // 1) Tipo
+        $vTipo = $request->validate([
+            'tipo_revision' => ['required', Rule::in($tipos)],
+        ]);
+
+    // 2) Opciones dependientes
+        $opciones = self::CATALOGO[$vTipo['tipo_revision']] ?? [];
         $data = $request->validate([
             'nombre'             => ['required','string','max:255'], // NUEVO
             'catalogo_etapa_id'  => ['required','integer','exists:catalogo_etapas,id'],

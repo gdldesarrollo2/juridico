@@ -37,6 +37,7 @@ const isEdit = computed(()=> props.mode === 'edit')
 
 // Inicializa el formulario con defaults + initial
 const form = useForm({
+  
   nombre: props.initial.nombre ?? '',
   tipo: props.initial.tipo ?? 'nulidad',
   cliente_id: props.initial.cliente_id ?? null,

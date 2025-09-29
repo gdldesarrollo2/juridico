@@ -13,7 +13,7 @@ class Revision extends Model
     'rev_gabinete','rev_domiciliaria','rev_electronica','rev_secuencial',
     'revision','periodo_desde','periodo_hasta',
     'objeto','observaciones','aspectos','compulsas',
-    'estatus',
+    'estatus', 'no_juicio',   // <- nuevo campo
   ];
 
   protected $casts = [

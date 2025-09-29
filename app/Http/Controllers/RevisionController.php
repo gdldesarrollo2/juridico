@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Revision;
-use App\Models\Empresa;
-use App\Models\Autoridad;
+use App\Models\Revision;   // <-- tu modelo
+use App\Models\User;       // <-- si usas otro (Abogado), cámbialo
+use App\Models\Empresa;   // <-- “empresa”
+use App\Models\Autoridad;  // <-- catálogo de autoridades
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RevisionController extends Controller
 {
-        // Catálogo fijo
-    private const CATALOGO_REVISION = [
+    /**
+     * Catálogo de opciones por tipo.
+     * Claves alineadas a tus columnas: gabinete, domiciliaria, electronica, secuencial.
+     */
+    private const CATALOGO = [
         'gabinete' => [
             'Orden de revisión de gabinete con requerimiento',
             'Solicitud de prórroga primer requerimiento',
@@ -30,7 +34,7 @@ class RevisionController extends Controller
             'En recurso de revocación',
             'En juicio de nulidad',
         ],
-        'visita' => [
+        'domiciliaria' => [
             'Orden de visita domiciliaria',
             'Acta parcial de inicio con requerimiento',
             'Segunda acta parcial',
@@ -80,18 +84,36 @@ class RevisionController extends Controller
         ],
     ];
 
-    private function opcionesPorTipo(string $tipo): array
+    /** Helpers */
+    private function opciones(string $tipo): array
     {
-        return self::CATALOGO_REVISION[$tipo] ?? [];
+        return self::CATALOGO[$tipo] ?? [];
     }
-    /**
-     * Listado de revisiones.
-     */
+
+    private function flags(string $tipo): array
+    {
+        return [
+            'rev_gabinete'     => $tipo === 'gabinete' ? 1 : 0,
+            'rev_domiciliaria' => $tipo === 'domiciliaria' ? 1 : 0,
+            'rev_electronica'  => $tipo === 'electronica' ? 1 : 0,
+            'rev_secuencial'   => $tipo === 'secuencial' ? 1 : 0,
+        ];
+    }
+
+    private function tipoDesdeFlags(Revision $r): string
+    {
+        return $r->rev_gabinete     ? 'gabinete'
+             : ($r->rev_domiciliaria ? 'domiciliaria'
+             : ($r->rev_electronica  ? 'electronica'
+             : 'secuencial'));
+    }
+
+    /** Listado simple */
     public function index(Request $request)
     {
         $revisiones = Revision::query()
             ->with([
-                'empresa:idempresa,razonsocial', // ← importante: idempresa
+                'empresa:idempresa,razonsocial', // â† importante: idempresa
                 'autoridad:id,nombre',
             ])
             ->orderByDesc('id')
@@ -103,15 +125,13 @@ class RevisionController extends Controller
         ]);
     }
 
-    /**
-     * Formulario de creación.
-     */
+    /** Form de creación */
     public function create()
     {
-        return Inertia::render('Revisiones/Create', [
+         return Inertia::render('Revisiones/Create', [
             'empresas'    => Empresa::orderBy('razonsocial')->get(['idempresa','razonsocial']),
             'autoridades' => Autoridad::orderBy('nombre')->get(['id','nombre']),
-            'catalogoRevision' => self::CATALOGO_REVISION,
+            'catalogoRevision' => self::CATALOGO,
             'defaults'    => [
                 'estatus' => 'en_juicio',
                 'rev_gabinete' => false,
@@ -122,112 +142,177 @@ class RevisionController extends Controller
         ]);
     }
 
-    /**
-     * Guardar nueva revisión.
-     */
+    /** Guarda */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'idempresa'        => ['required','exists:empresas,idempresa'],
-            'autoridad_id'     => ['nullable','exists:autoridades,id'],
-            'revision'       => ['required', Rule::in($this->opcionesPorTipo($validatedTipo['tipo_revision']))],
-            'rev_gabinete'     => ['boolean'],
-            'rev_domiciliaria' => ['boolean'],
-            'rev_electronica'  => ['boolean'],
-            'rev_secuencial'   => ['boolean'],
-            'periodo_desde'    => ['nullable','date'],
-            'periodo_hasta'    => ['nullable','date','after_or_equal:periodo_desde'],
-            'objeto'           => ['nullable','string','max:255'],
-            'observaciones'    => ['nullable','string'],
-            'aspectos'         => ['nullable','string'],
-            'compulsas'        => ['nullable','string'],
-            'estatus'          => ['required','in:en_juicio,pendiente,autorizado,en_proceso,concluido'],
+        $tipos = ['gabinete','domiciliaria','electronica','secuencial'];
+
+        // 1) tipo con CLOSURE (evita validateGabinete)
+        $vTipo = $request->validate([
+            'tipo_revision' => [
+                'required',
+                function ($attr, $val, $fail) use ($tipos) {
+                    if (!in_array($val, $tipos, true)) {
+                        $fail('Tipo de revisión inválido.');
+                    }
+                },
+            ],
         ]);
 
-        $data['usuario_id'] = auth()->id();
+        // 2) resto condicionado por tipo (también con CLOSURE)
+        $opciones = $this->opciones($vTipo['tipo_revision']);
+
+        $validated = $request->validate([
+            'empresa_id'   => ['required','integer','exists:empresas,idempresa'], // map → idempresa
+            'usuario_id'    => ['nullable','integer','exists:users,id'],
+            'autoridad_id'  => ['nullable','integer','exists:autoridades,id'],
+            'revision'      => [
+                'required',
+                function ($attr, $val, $fail) use ($opciones) {
+                    if (!in_array($val, $opciones, true)) {
+                        $fail('La revisión seleccionada no es válida para el tipo.');
+                    }
+                },
+            ],
+            'periodo_desde' => ['nullable','date'],
+            'periodo_hasta' => ['nullable','date','after_or_equal:periodo_desde'],
+            'objeto'        => ['nullable','string','max:255'],
+            'observaciones' => ['nullable','string'],
+            'aspectos'      => ['nullable','string'],
+            'compulsas'     => ['nullable','string'],
+             'no_juicio' => ['nullable', 'alpha_num'],
+            'estatus'       => [
+                'required',
+                function ($attr, $val, $fail) {
+                    if (!in_array($val, ['en_juicio','concluido','cancelado'], true)) {
+                        $fail('Estatus inválido.');
+                    }
+                },
+            ],
+        ] + $vTipo);
+
+        $data = [
+            'idempresa'     => $validated['empresa_id'],
+            'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
+            'autoridad_id'  => $validated['autoridad_id'] ?? null,
+            'revision'      => $validated['revision'],
+            'periodo_desde' => $validated['periodo_desde'] ?? null,
+            'periodo_hasta' => $validated['periodo_hasta'] ?? null,
+            'objeto'        => $validated['objeto'] ?? null,
+            'observaciones' => $validated['observaciones'] ?? null,
+            'aspectos'      => $validated['aspectos'] ?? null,
+            'compulsas'     => $validated['compulsas'] ?? null,
+            'no_juicio'     => $validated['no_juicio'] ?? null,
+            'estatus'       => $validated['estatus'],
+        ] + $this->flags($validated['tipo_revision']);
 
         Revision::create($data);
 
-        return redirect()->route('revisiones.index')
-            ->with('success', 'Revisión creada correctamente.');
+        return redirect()->route('revisiones.index')->with('success', 'Revisión creada.');
     }
 
-    /**
-     * Formulario de edición.
-     */
-  public function edit(Revision $revision)
-{
-    $revision->load(['empresa:idempresa,razonsocial','autoridad:id,nombre']);
+    /** Form de edición */
+    public function edit(Revision $revision)
+    {
+        $tipo = $this->tipoDesdeFlags($revision);
 
-    $payload = [
-        'id'              => $revision->id,
-        'idempresa'       => (int) $revision->idempresa,
-        'autoridad_id'    => $revision->autoridad_id ? (int) $revision->autoridad_id : null,
-        'revision'        => $revision->revision,
-        'rev_gabinete'    => (bool) $revision->rev_gabinete,
-        'rev_domiciliaria'=> (bool) $revision->rev_domiciliaria,
-        'rev_electronica' => (bool) $revision->rev_electronica,
-        'rev_secuencial'  => (bool) $revision->rev_secuencial,
-        'periodo_desde'   => optional($revision->periodo_desde)->toDateString(), // YYYY-MM-DD
-        'periodo_hasta'   => optional($revision->periodo_hasta)->toDateString(),
-        'objeto'          => $revision->objeto,
-        'observaciones'   => $revision->observaciones,
-        'aspectos'        => $revision->aspectos,
-        'compulsas'       => $revision->compulsas,
-        'estatus'         => $revision->estatus,
-        'empresa'         => $revision->empresa
-            ? ['idempresa' => (int)$revision->empresa->idempresa, 'razonsocial' => $revision->empresa->razonsocial]
-            : null,
-        'autoridad'       => $revision->autoridad
-            ? ['id' => (int)$revision->autoridad->id, 'nombre' => $revision->autoridad->nombre]
-            : null,
-    ];
+        return Inertia::render('Revisiones/Edit', [
+            'catalogoRevision' => self::CATALOGO,
+             'empresas'    => Empresa::orderBy('razonsocial')->get(['idempresa','razonsocial']),
+            'autoridades'      => Autoridad::select('id','nombre')->orderBy('nombre')->get(),
+            'usuarios'         => User::select('id','name')->orderBy('name')->get(),
+            'estatuses'        => [
+                ['value' => 'en_juicio',  'label' => 'En juicio'],
+                ['value' => 'concluido',  'label' => 'Concluido'],
+                ['value' => 'cancelado',  'label' => 'Cancelado'],
+            ],
+            'initial' => [
+                'tipo_revision'  => $tipo,
+                'empresa_id'    => $revision->idempresa,
+                'usuario_id'     => $revision->usuario_id,
+                'autoridad_id'   => $revision->autoridad_id,
+                'revision'       => $revision->revision,
+                'periodo_desde'  => optional($revision->periodo_desde)->format('Y-m-d'),
+                'periodo_hasta'  => optional($revision->periodo_hasta)->format('Y-m-d'),
+                'objeto'         => $revision->objeto,
+                'observaciones'  => $revision->observaciones,
+                'aspectos'       => $revision->aspectos,
+                'compulsas'      => $revision->compulsas,
+                'no_juicio'      => $revision->no_juicio,
+                'estatus'        => $revision->estatus,
+            ],
+            'revisionId' => $revision->id,
+        ]);
+    }
 
-    return Inertia::render('Revisiones/Edit', [
-        'revision'    => $payload,
-        'empresas'    => Empresa::orderBy('razonsocial')->get(['idempresa','razonsocial']),
-        'autoridades' => Autoridad::orderBy('nombre')->get(['id','nombre']),
-    ]);
-}
-
-    /**
-     * Actualizar revisión.
-     */
+    /** Actualiza */
     public function update(Request $request, Revision $revision)
     {
-        $data = $request->validate([
-            'idempresa'        => ['required','exists:empresas,idempresa'],
-            'autoridad_id'     => ['nullable','exists:autoridades,id'],
-            'revision'         => ['nullable','string','max:255'],
-            'rev_gabinete'     => ['boolean'],
-            'rev_domiciliaria' => ['boolean'],
-            'rev_electronica'  => ['boolean'],
-            'rev_secuencial'   => ['boolean'],
-            'periodo_desde'    => ['nullable','date'],
-            'periodo_hasta'    => ['nullable','date','after_or_equal:periodo_desde'],
-            'objeto'           => ['nullable','string','max:255'],
-            'observaciones'    => ['nullable','string'],
-            'aspectos'         => ['nullable','string'],
-            'compulsas'        => ['nullable','string'],
-            'estatus'          => ['required','in:en_juicio,pendiente,autorizado,en_proceso,concluido'],
+        $tipos = ['gabinete','domiciliaria','electronica','secuencial'];
+
+        $vTipo = $request->validate([
+            'tipo_revision' => [
+                'required',
+                function ($attr, $val, $fail) use ($tipos) {
+                    if (!in_array($val, $tipos, true)) {
+                        $fail('Tipo de revisión inválido.');
+                    }
+                },
+            ],
         ]);
 
-        $data['usuario_id'] = auth()->id();
+        $opciones = $this->opciones($vTipo['tipo_revision']);
 
-        $revision->update($data);
+        $validated = $request->validate([
+            'empresa_id'   => ['required','integer','exists:empresas,id'],
+            'usuario_id'    => ['nullable','integer','exists:users,id'],
+            'autoridad_id'  => ['nullable','integer','exists:autoridades,id'],
+            'revision'      => [
+                'required',
+                function ($attr, $val, $fail) use ($opciones) {
+                    if (!in_array($val, $opciones, true)) {
+                        $fail('La revisión seleccionada no es válida para el tipo.');
+                    }
+                },
+            ],
+            'periodo_desde' => ['nullable','date'],
+            'periodo_hasta' => ['nullable','date','after_or_equal:periodo_desde'],
+            'objeto'        => ['nullable','string','max:255'],
+            'observaciones' => ['nullable','string'],
+            'aspectos'      => ['nullable','string'],
+            'compulsas'     => ['nullable','string'],
+            'estatus'       => [
+                'required',
+                function ($attr, $val, $fail) {
+                    if (!in_array($val, ['en_juicio','concluido','cancelado'], true)) {
+                        $fail('Estatus inválido.');
+                    }
+                },
+            ],
+        ] + $vTipo);
 
-        return redirect()->route('revisiones.index')
-            ->with('success', 'Revisión actualizada correctamente.');
+        $revision->update([
+            'idempresa'     => $validated['empresa_id'],
+            'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
+            'autoridad_id'  => $validated['autoridad_id'] ?? null,
+            'revision'      => $validated['revision'],
+            'periodo_desde' => $validated['periodo_desde'] ?? null,
+            'periodo_hasta' => $validated['periodo_hasta'] ?? null,
+            'objeto'        => $validated['objeto'] ?? null,
+            'observaciones' => $validated['observaciones'] ?? null,
+            'aspectos'      => $validated['aspectos'] ?? null,
+            'compulsas'     => $validated['compulsas'] ?? null,
+            'no_juicio'     => $validated['no_juicio'] ?? null,
+            'estatus'       => $validated['estatus'],
+        ] + $this->flags($validated['tipo_revision']));
+
+        return redirect()->route('revisiones.index')->with('success', 'Revisión actualizada.');
     }
 
-    /**
-     * Eliminar revisión.
-     */
+    /** Elimina (opcional) */
     public function destroy(Revision $revision)
     {
         $revision->delete();
-
-        return redirect()->route('revisiones.index')
-            ->with('success', 'Revisión eliminada correctamente.');
+        return back()->with('success', 'Revisión eliminada.');
     }
 }
