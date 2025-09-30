@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
+import { computed, watch } from 'vue'
+
+// --- Tipos auxiliares ---
+type TipoJuicio = 'nulidad' | 'revocacion'
 
 const props = defineProps<{
-  juicio: { id:number; nombre?:string; cliente?:{ id:number; nombre:string } | null }
+  catalogoEtapas: Record<TipoJuicio, string[]>
+  juicio: {
+    id: number
+    tipo: TipoJuicio            // ⬅️ Asegúrate de enviar esto desde el backend
+    nombre?: string
+    cliente?: { id:number; nombre:string } | null
+  }
   fecha_inicio_juicio?: string|null
   catalogos: {
     etiquetas: Array<{id:number; nombre:string}>
@@ -24,18 +34,34 @@ const props = defineProps<{
   }>
 }>()
 
+// === Opciones de etapa según el tipo del juicio ===
+const opcionesEtapa = computed<string[]>(() => {
+  return props.catalogoEtapas[props.juicio.tipo] ?? []
+})
+
 const form = useForm({
   etiqueta_id: '',
-  etapa: '',
+  etapa: '',                   // ← será una opción del catálogo
   usuario_id: '',
   rol: '',
   comentarios: '',
-  fecha_inicio: '',         
+  fecha_inicio: '',
   dias_vencimiento: 0,
-  fecha_vencimiento: '', // si la dejas vacía, el backend la calcula con fecha_inicio + días
+  fecha_vencimiento: '',
   estatus: 'en_tramite',
   archivo: null as File|null,
 })
+
+// Si el tipo cambia (o al montar), asegura que etapa tenga una opción válida
+watch(
+  () => [props.juicio.tipo, opcionesEtapa.value],
+  () => {
+    if (!opcionesEtapa.value.includes(form.etapa)) {
+      form.etapa = opcionesEtapa.value[0] ?? ''
+    }
+  },
+  { immediate: true, deep: true }
+)
 
 function submit() {
   form.post(route('juicios.etapas.store', props.juicio.id), { forceFormData: true })
@@ -51,6 +77,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
       <p class="mt-2 text-gray-600 dark:text-gray-600">
         ID JUICIO: #{{ juicio.id }}
         <span v-if="juicio.cliente"> CLIENTE: {{ juicio.cliente.nombre }}</span>
+        • <span class="capitalize">tipo: {{ juicio.tipo }}</span>
       </p>
     </div>
 
@@ -58,27 +85,36 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
     <form @submit.prevent="submit" class="bg-whiterounded shadow p-4 space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-        <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Fecha de inicio de la etapa</label>
-        <input v-model="form.fecha_inicio" type="date"
-                class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Fecha de inicio de la etapa</label>
+          <input v-model="form.fecha_inicio" type="date"
+                 class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
         </div>
+
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Etiqueta</label>
-          <select v-model="form.etiqueta_id" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <select v-model="form.etiqueta_id"
+                  class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
             <option value="">—</option>
             <option v-for="e in catalogos.etiquetas" :key="e.id" :value="e.id">{{ e.nombre }}</option>
           </select>
         </div>
 
+        <!-- ⬇️ Etapa ahora es SELECT dependiente del tipo -->
         <div>
-          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Etapa</label>
-          <input v-model="form.etapa" type="text" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="1. Presentación de la demanda">
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">
+            Etapa (catálogo para {{ juicio.tipo }})
+          </label>
+          <select v-model="form.etapa"
+                  class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+            <option v-for="et in opcionesEtapa" :key="et" :value="et">{{ et }}</option>
+          </select>
           <div v-if="form.errors.etapa" class="text-red-400 text-xs">{{ form.errors.etapa }}</div>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Usuario</label>
-          <select v-model="form.usuario_id" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <select v-model="form.usuario_id"
+                  class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
             <option value="">—</option>
             <option v-for="u in catalogos.usuarios" :key="u.id" :value="u.id">{{ u.name }}</option>
           </select>
@@ -86,36 +122,46 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Rol</label>
-          <input v-model="form.rol" type="text" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" placeholder="ABOGADO">
+          <input v-model="form.rol" type="text"
+                 class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
+                 placeholder="ABOGADO">
         </div>
 
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Comentarios/Descripción</label>
-          <textarea v-model="form.comentarios" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" rows="3"></textarea>
+          <textarea v-model="form.comentarios"
+                    class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
+                    rows="3"></textarea>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Días (para vencimiento)</label>
-          <input v-model.number="form.dias_vencimiento" type="number" min="0" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
-          <p class="text-xs text-gray-500 mt-1">Fecha inicio del juicio: <strong>{{ props.fecha_inicio_juicio ?? '—' }}</strong></p>
+          <input v-model.number="form.dias_vencimiento" type="number" min="0"
+                 class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <p class="text-xs text-gray-500 mt-1">
+            Fecha inicio del juicio: <strong>{{ props.fecha_inicio_juicio ?? '—' }}</strong>
+          </p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Fecha de vencimiento (opcional)</label>
-          <input v-model="form.fecha_vencimiento" type="date" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <input v-model="form.fecha_vencimiento" type="date"
+                 class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
           <p class="text-xs text-gray-500 mt-1">Si se deja vacía, se calcula con fecha inicio + días.</p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Estatus</label>
-          <select v-model="form.estatus" class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
+          <select v-model="form.estatus"
+                  class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
             <option v-for="s in catalogos.estatuses" :key="s.value" :value="s.value">{{ s.label }}</option>
           </select>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Archivo</label>
-          <input type="file" @change="e => form.archivo = (e.target as HTMLInputElement).files?.[0] ?? null"
+          <input type="file"
+                 @change="e => form.archivo = (e.target as HTMLInputElement).files?.[0] ?? null"
                  class="mt-1 w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded file:border file:bg-gray-100 dark:file:bg-gray-300 file:cursor-pointer" />
         </div>
       </div>
@@ -129,7 +175,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
     </form>
 
     <!-- Listado -->
-    <div  class="bg-white rounded shadow overflow-x-auto">
+    <div class="bg-white rounded shadow overflow-x-auto">
       <table class="min-w-full text-sm text-black">
         <thead class="bg-gray-50">
           <tr>

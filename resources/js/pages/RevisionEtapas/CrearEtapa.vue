@@ -27,6 +27,7 @@ const props = defineProps<{
 // === Formulario ===
 const today = new Date().toISOString().slice(0,10)
 const form = useForm({
+  tipo_revision: '' as 'gabinete' | 'domiciliaria' | 'electronica' | 'secuencial' | '',
   catalogo_etapa_id: props.catalogoEtapas?.[0]?.id ?? null,
   fecha_inicio: today,
   dias_vencimiento: 30,
