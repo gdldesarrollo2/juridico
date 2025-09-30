@@ -1,9 +1,25 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { reactive,computed, watch } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
+import TopNavLayout from '@/layouts/TopNavLayout.vue'
 
 type TipoRevision = 'gabinete' | 'domiciliaria' | 'electronica' | 'secuencial'
 
+// Meses
+const MESES = [
+  { v:1,  label:'Enero' }, { v:2,  label:'Febrero' }, { v:3,  label:'Marzo' },
+  { v:4,  label:'Abril' }, { v:5,  label:'Mayo' },    { v:6,  label:'Junio' },
+  { v:7,  label:'Julio' }, { v:8,  label:'Agosto' },  { v:9,  label:'Septiembre' },
+  { v:10, label:'Octubre' }, { v:11,label:'Noviembre' }, { v:12,label:'Diciembre' },
+]
+
+// Años disponibles (ajusta el rango)
+const aniosDisponibles = computed(() => {
+  const y = new Date().getFullYear()
+  const arr: number[] = []
+  for (let i = y + 1; i >= y - 20; i--) arr.push(i)
+  return arr
+})
 const props = defineProps<{
   // Catálogo que viene del controlador: { gabinete: string[], domiciliaria: string[], ... }
   catalogoRevision: Record<TipoRevision, string[]>
@@ -27,8 +43,7 @@ const form = useForm({
   // 👇 aquí están los radios y el select dependiente
   tipo_revision: '' as '' | TipoRevision,
   revision: '',
-  periodo_desde: '',
-  periodo_hasta: '',
+  periodos: [] as Array<{ anio:number, meses:number[] }>,
   objeto: '',
   observaciones: '',
   aspectos: '',
@@ -42,6 +57,38 @@ const opcionesRevision = computed(() => {
   return form.tipo_revision ? (props.catalogoRevision[form.tipo_revision] ?? []) : []
 })
 
+// Estado para el picker de año nuevo
+const nuevoAnio = reactive<{ value: number | '' }>({ value: '' })
+
+// Años ya seleccionados (para evitar duplicados)
+const aniosSeleccionados = computed(() => form.periodos.map(p => p.anio))
+
+function agregarAnio() {
+  const val = Number(nuevoAnio.value)
+  if (!val) return
+  if (aniosSeleccionados.value.includes(val)) return
+  form.periodos.push({ anio: val, meses: [] })
+  nuevoAnio.value = ''
+}
+
+function eliminarAnio(anio: number) {
+  const i = form.periodos.findIndex(p => p.anio === anio)
+  if (i >= 0) form.periodos.splice(i, 1)
+}
+
+function toggleMes(anio: number, mes: number) {
+  const periodo = form.periodos.find(p => p.anio === anio)
+  if (!periodo) return
+  const idx = periodo.meses.indexOf(mes)
+  if (idx === -1) periodo.meses.push(mes)
+  else periodo.meses.splice(idx, 1)
+  periodo.meses.sort((a,b)=>a-b)
+}
+
+function mesesDe(anio:number) {
+  const p = form.periodos.find(x => x.anio === anio)
+  return p ? p.meses : []
+}
 // si cambia el tipo, valida/reset la revisión elegida
 watch(() => form.tipo_revision, () => {
   if (!opcionesRevision.value.includes(form.revision)) {
@@ -55,6 +102,7 @@ function submit() {
 </script>
 
 <template>
+    <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold">REVISIÓN DE AUTORIDAD FISCAL</h1>
@@ -85,7 +133,17 @@ function submit() {
         </div>
         <p v-if="form.errors.tipo_revision" class="text-red-600 text-xs mt-1">{{ form.errors.tipo_revision }}</p>
       </div>
-
+       <!-- Revisión dependiente del tipo -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Revisión</label>
+        <select v-model="form.revision" :disabled="!form.tipo_revision" class="w-full border rounded px-3 py-2">
+          <option v-if="!form.tipo_revision" value="">Primero elige el tipo…</option>
+          <option v-for="(op, i) in opcionesRevision" :key="i" :value="op">
+            {{ i + 1 }}. {{ op }}
+          </option>
+        </select>
+        <p v-if="form.errors.revision" class="text-red-600 text-xs mt-1">{{ form.errors.revision }}</p>
+      </div>
       <!-- Sociedad y Autoridad -->
       <div class="grid md:grid-cols-2 gap-4">
         <div>
@@ -110,31 +168,60 @@ function submit() {
         </div>
       </div>
 
-      <!-- Revisión dependiente del tipo -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Revisión</label>
-        <select v-model="form.revision" :disabled="!form.tipo_revision" class="w-full border rounded px-3 py-2">
-          <option v-if="!form.tipo_revision" value="">Primero elige el tipo…</option>
-          <option v-for="(op, i) in opcionesRevision" :key="i" :value="op">
-            {{ i + 1 }}. {{ op }}
+     
+
+     <div class="space-y-4">
+    <!-- Selector para agregar años -->
+    <div class="flex items-end gap-3">
+      <div class="grow">
+        <label class="block text-sm font-medium mb-1">Año</label>
+        <select v-model="nuevoAnio.value" class="w-full border rounded px-3 py-2">
+          <option value="">Seleccione…</option>
+          <option
+            v-for="y in aniosDisponibles"
+            :key="y"
+            :value="y"
+            :disabled="aniosSeleccionados.includes(y)"
+          >
+            {{ y }}
           </option>
         </select>
-        <p v-if="form.errors.revision" class="text-red-600 text-xs mt-1">{{ form.errors.revision }}</p>
+      </div>
+      <button type="button" @click="agregarAnio"
+              class="h-10 px-4 rounded bg-emerald-600 text-white hover:bg-emerald-700">
+        Añadir año
+      </button>
+    </div>
+    <p v-if="form.errors['periodos']" class="text-red-600 text-xs">
+      {{ form.errors['periodos'] }}
+    </p>
+
+    <!-- Bloques por año con sus meses -->
+    <div v-for="p in form.periodos" :key="p.anio" class="border rounded-lg p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold">Meses de {{ p.anio }}</h3>
+        <button type="button" @click="eliminarAnio(p.anio)"
+                class="text-sm text-red-600 hover:underline">Quitar año</button>
       </div>
 
-      <!-- Periodo -->
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Periodo/Ejercicio desde</label>
-          <input type="date" v-model="form.periodo_desde" class="w-full border rounded px-3 py-2" />
-          <p v-if="form.errors.periodo_desde" class="text-red-600 text-xs mt-1">{{ form.errors.periodo_desde }}</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">al</label>
-          <input type="date" v-model="form.periodo_hasta" class="w-full border rounded px-3 py-2" />
-          <p v-if="form.errors.periodo_hasta" class="text-red-600 text-xs mt-1">{{ form.errors.periodo_hasta }}</p>
-        </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <label v-for="m in MESES" :key="m.v"
+               class="inline-flex items-center gap-2 border rounded px-3 py-2">
+          <input
+            type="checkbox"
+            :checked="mesesDe(p.anio).includes(m.v)"
+            @change="toggleMes(p.anio, m.v)"
+          />
+          <span>{{ m.label }}</span>
+        </label>
       </div>
+
+      <p v-if="form.errors[`periodos.${form.periodos.indexOf(p)}.meses`]"
+         class="text-red-600 text-xs">
+        {{ form.errors[`periodos.${form.periodos.indexOf(p)}.meses`] }}
+      </p>
+    </div>
+  </div>
 
       <!-- Objeto -->
       <div>
@@ -165,7 +252,7 @@ function submit() {
 </div>
       <!-- Compulsas -->
       <div>
-        <label class="block text-sm font-medium mb-1">Compulsas</label>
+        <label class="block text-sm font-medium mb-1">Empresa compulsada</label>
         <textarea v-model="form.compulsas" rows="2" class="w-full border rounded px-3 py-2" placeholder="Escriba…"></textarea>
         <p v-if="form.errors.compulsas" class="text-red-600 text-xs mt-1">{{ form.errors.compulsas }}</p>
       </div>

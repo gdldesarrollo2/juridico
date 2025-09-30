@@ -112,17 +112,20 @@ class RevisionController extends Controller
     public function index(Request $request)
     {
         $revisiones = Revision::query()
-            ->with([
-                'empresa:idempresa,razonsocial', // â† importante: idempresa
-                'autoridad:id,nombre',
-            ])
-            ->orderByDesc('id')
-            ->paginate(10)
-            ->withQueryString();
+        ->with([
+            'empresa:idempresa,razonsocial',
+            'autoridad:id,nombre',
+        ])
+        ->orderByDesc('id')
+        ->paginate(10)
+        ->withQueryString();
 
-        return Inertia::render('Revisiones/Index', [
-            'revisiones' => $revisiones,
-        ]);
+    // añade el accesor 'periodo_etiqueta' a cada modelo de la página actual
+    $revisiones->getCollection()->each->append('periodo_etiqueta');
+
+    return Inertia::render('Revisiones/Index', [
+        'revisiones' => $revisiones,
+    ]);
     }
 
     /** Form de creación */
@@ -174,8 +177,10 @@ class RevisionController extends Controller
                     }
                 },
             ],
-            'periodo_desde' => ['nullable','date'],
-            'periodo_hasta' => ['nullable','date','after_or_equal:periodo_desde'],
+            'periodos'              => ['required','array','min:1'],
+            'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
+            'periodos.*.meses'      => ['required','array','min:1'],
+            'periodos.*.meses.*'    => ['integer','between:1,12'],
             'objeto'        => ['nullable','string','max:255'],
             'observaciones' => ['nullable','string'],
             'aspectos'      => ['nullable','string'],
@@ -190,14 +195,20 @@ class RevisionController extends Controller
                 },
             ],
         ] + $vTipo);
+        $periodosMapa = [];
+        foreach ($validated['periodos'] as $item) {
+            $anio = (string)$item['anio'];
+            $meses = array_values(array_unique(array_map('intval', $item['meses'])));
+            sort($meses);
+            $periodosMapa[$anio] = $meses;
+        }
 
         $data = [
             'idempresa'     => $validated['empresa_id'],
             'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
             'autoridad_id'  => $validated['autoridad_id'] ?? null,
             'revision'      => $validated['revision'],
-            'periodo_desde' => $validated['periodo_desde'] ?? null,
-            'periodo_hasta' => $validated['periodo_hasta'] ?? null,
+            'periodos' => $periodosMapa,
             'objeto'        => $validated['objeto'] ?? null,
             'observaciones' => $validated['observaciones'] ?? null,
             'aspectos'      => $validated['aspectos'] ?? null,
@@ -212,38 +223,40 @@ class RevisionController extends Controller
     }
 
     /** Form de edición */
-    public function edit(Revision $revision)
-    {
-        $tipo = $this->tipoDesdeFlags($revision);
+  public function edit(Revision $revision)
+{
+    $tipo = $revision->rev_gabinete ? 'gabinete'
+          : ($revision->rev_domiciliaria ? 'domiciliaria'
+          : ($revision->rev_electronica ? 'electronica'
+          : 'secuencial'));
 
-        return Inertia::render('Revisiones/Edit', [
-            'catalogoRevision' => self::CATALOGO,
-             'empresas'    => Empresa::orderBy('razonsocial')->get(['idempresa','razonsocial']),
-            'autoridades'      => Autoridad::select('id','nombre')->orderBy('nombre')->get(),
-            'usuarios'         => User::select('id','name')->orderBy('name')->get(),
-            'estatuses'        => [
-                ['value' => 'en_juicio',  'label' => 'En juicio'],
-                ['value' => 'concluido',  'label' => 'Concluido'],
-                ['value' => 'cancelado',  'label' => 'Cancelado'],
-            ],
-            'initial' => [
-                'tipo_revision'  => $tipo,
-                'empresa_id'    => $revision->idempresa,
-                'usuario_id'     => $revision->usuario_id,
-                'autoridad_id'   => $revision->autoridad_id,
-                'revision'       => $revision->revision,
-                'periodo_desde'  => optional($revision->periodo_desde)->format('Y-m-d'),
-                'periodo_hasta'  => optional($revision->periodo_hasta)->format('Y-m-d'),
-                'objeto'         => $revision->objeto,
-                'observaciones'  => $revision->observaciones,
-                'aspectos'       => $revision->aspectos,
-                'compulsas'      => $revision->compulsas,
-                'no_juicio'      => $revision->no_juicio,
-                'estatus'        => $revision->estatus,
-            ],
-            'revisionId' => $revision->id,
-        ]);
-    }
+    return Inertia::render('Revisiones/Edit', [
+        'empresas'    => Empresa::orderBy('razonsocial')->get(['idempresa','razonsocial']),
+        'autoridades' => Autoridad::orderBy('nombre')->get(['id','nombre']),
+        'catalogoRevision' => self::CATALOGO,
+        // ... (tus catálogos)
+
+        // 👇 Agrega esto:
+        'revision' => [
+            'id'          => $revision->id,
+            'idempresa'   => $revision->idempresa,
+            'usuario_id'  => $revision->usuario_id,
+            'autoridad_id'=> $revision->autoridad_id,
+            'revision'    => $revision->revision,
+            'periodos'    => $revision->periodos,
+            'objeto'      => $revision->objeto,
+            'observaciones'=> $revision->observaciones,
+            'aspectos'    => $revision->aspectos,
+            'compulsas'   => $revision->compulsas,
+            'estatus'     => $revision->estatus,
+            'tipo_revision'=> $tipo,
+            'no_juicio'   => $revision->no_juicio ?? null,
+        ],
+
+        // si ya usas initial, puedes mantenerlo, pero no es necesario si usas `revision`
+        // 'initial' => [ ... ],
+    ]);
+}
 
     /** Actualiza */
     public function update(Request $request, Revision $revision)
@@ -264,7 +277,7 @@ class RevisionController extends Controller
         $opciones = $this->opciones($vTipo['tipo_revision']);
 
         $validated = $request->validate([
-            'empresa_id'   => ['required','integer','exists:empresas,id'],
+            'empresa_id'   => ['required','integer','exists:empresas,idempresa'],
             'usuario_id'    => ['nullable','integer','exists:users,id'],
             'autoridad_id'  => ['nullable','integer','exists:autoridades,id'],
             'revision'      => [
@@ -275,8 +288,10 @@ class RevisionController extends Controller
                     }
                 },
             ],
-            'periodo_desde' => ['nullable','date'],
-            'periodo_hasta' => ['nullable','date','after_or_equal:periodo_desde'],
+         'periodos' => 'array',
+        'periodos.*.anio' => 'required|integer',
+        'periodos.*.meses' => 'array',
+        'periodos.*.meses.*' => 'integer|min:1|max:12',
             'objeto'        => ['nullable','string','max:255'],
             'observaciones' => ['nullable','string'],
             'aspectos'      => ['nullable','string'],
@@ -290,14 +305,15 @@ class RevisionController extends Controller
                 },
             ],
         ] + $vTipo);
-
+        $periodos = collect($validated['periodos'] ?? [])
+    ->mapWithKeys(fn($p) => [$p['anio'] => $p['meses']])
+    ->toArray();
         $revision->update([
             'idempresa'     => $validated['empresa_id'],
             'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
             'autoridad_id'  => $validated['autoridad_id'] ?? null,
             'revision'      => $validated['revision'],
-            'periodo_desde' => $validated['periodo_desde'] ?? null,
-            'periodo_hasta' => $validated['periodo_hasta'] ?? null,
+            'periodos' => $periodos ?? null,
             'objeto'        => $validated['objeto'] ?? null,
             'observaciones' => $validated['observaciones'] ?? null,
             'aspectos'      => $validated['aspectos'] ?? null,

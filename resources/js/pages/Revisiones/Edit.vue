@@ -1,72 +1,100 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
-import AppLayout from '@/layouts/TopNavLayout.vue'
-
-type Empresa = { idempresa:number|string; razonsocial:string }
-type Autoridad = { id:number|string; nombre:string }
+import TopNavLayout from '@/layouts/TopNavLayout.vue'
 
 const props = defineProps<{
   revision: {
     id: number
-    idempresa: number|string|null
-    autoridad_id: number|string|null
-    revision?: string|null
-    rev_gabinete: boolean
-    rev_domiciliaria: boolean
-    rev_electronica: boolean
-    rev_secuencial: boolean
-    periodo_desde?: string|null
-    periodo_hasta?: string|null
-    objeto?: string|null
-    observaciones?: string|null
-    aspectos?: string|null
-    compulsas?: string|null
+    idempresa: number|null
+    usuario_id: number|null
+    autoridad_id: number|null
+    revision: string
+    periodos: Record<string, number[]> // { "2022": [1,6,7], "2025":[1,2] }
+    objeto: string|null
+    observaciones: string|null
+    aspectos: string|null
+    compulsas: string|null
     estatus: string
-    empresa?: { idempresa:number|string, razonsocial:string } | null
-    autoridad?: { id:number|string, nombre:string } | null
+    tipo_revision: 'gabinete'|'domiciliaria'|'electronica'|'secuencial'
+    no_juicio?: string|null
   }
-  empresas: Empresa[]
-  autoridades: Autoridad[]
+  catalogoRevision: Record<'gabinete'|'domiciliaria'|'electronica'|'secuencial', string[]>
+  // Catálogos de selects (pon los nombres reales que ya usas)
+  empresas: Array<{ idempresa: number; razonsocial: string }>
+  autoridades: Array<{ id: number; nombre: string }>
+  // ...otros catálogos
 }>()
 
-const toDateInput = (s?: string|null) => s ? s.slice(0,10) : ''
-
+// inicializa el formulario usando props.revision (ya no truena)
 const form = useForm({
-  idempresa: props.revision.idempresa != null ? Number(props.revision.idempresa) : null,
-  autoridad_id: props.revision.autoridad_id != null ? Number(props.revision.autoridad_id) : null,
-  revision: props.revision.revision ?? '',
-  rev_gabinete: !!props.revision.rev_gabinete,
-  rev_domiciliaria: !!props.revision.rev_domiciliaria,
-  rev_electronica: !!props.revision.rev_electronica,
-  rev_secuencial: !!props.revision.rev_secuencial,
-  periodo_desde: toDateInput(props.revision.periodo_desde),
-  periodo_hasta: toDateInput(props.revision.periodo_hasta),
+  empresa_id: props.revision.idempresa ?? '',
+  usuario_id: props.revision.usuario_id ?? '',
+  autoridad_id: props.revision.autoridad_id ?? '',
+  tipo_revision: props.revision.tipo_revision,
+  revision: props.revision.revision,
+periodos: Object.entries(props.revision.periodos || {}).map(
+    ([anio, meses]) => ({
+      anio: parseInt(anio),
+      meses: meses as number[],
+    })
+  ),
   objeto: props.revision.objeto ?? '',
   observaciones: props.revision.observaciones ?? '',
   aspectos: props.revision.aspectos ?? '',
   compulsas: props.revision.compulsas ?? '',
-  estatus: props.revision.estatus,
+  estatus: props.revision.estatus ?? 'en_juicio',
+  no_juicio: props.revision.no_juicio ?? '',
 })
+// lista dependiente de “revision”
+const opcionesRevision = computed(() => {
+  return form.tipo_revision ? (props.catalogoRevision[form.tipo_revision] ?? []) : []
+})
+
+// si cambia el tipo, valida/reset la revisión elegida
+watch(() => form.tipo_revision, () => {
+  if (!opcionesRevision.value.includes(form.revision)) {
+    form.revision = opcionesRevision.value[0] ?? ''
+  }
+})
+function toggleMes(periodoIndex: number, mes: number) {
+  const meses = form.periodos[periodoIndex].meses
+  if (meses.includes(mes)) {
+    form.periodos[periodoIndex].meses = meses.filter(m => m !== mes)
+  } else {
+    form.periodos[periodoIndex].meses.push(mes)
+  }
+}
+
+function addPeriodo() {
+  form.periodos.push({ anio: new Date().getFullYear(), meses: [] })
+}
+
+function removePeriodo(i:number) {
+  form.periodos.splice(i,1)
+}
 
 function submit() {
   form.put(route('revisiones.update', props.revision.id))
 }
 </script>
-
 <template>
+  <TopNavLayout></TopNavLayout>
+
   <AppLayout>
     <form @submit.prevent="submit" class="max-w-4xl mx-auto p-6 bg-white rounded shadow space-y-4">
       <h1 class="text-2xl font-semibold">Editar revisión #{{ props.revision.id }}</h1>
 
       <!-- Sociedad -->
       <div>
-        <label class="block text-sm font-medium">Sociedad</label>
-        <select v-model="form.idempresa" class="mt-1 w-full border rounded px-3 py-2">
-          <option disabled value="">Seleccione…</option>
-          <option v-for="e in props.empresas" :key="e.idempresa" :value="Number(e.idempresa)">
-            {{ e.razonsocial }}
-          </option>
-        </select>
+          <label class="block text-sm font-medium mb-1">Sociedad</label>
+          <select v-model="form.empresa_id" class="w-full border rounded px-3 py-2">
+            <option value="">Seleccione…</option>
+            <option v-for="s in empresas" :key="s.idempresa" :value="s.idempresa">
+              {{ s.razonsocial }}
+            </option>
+          </select>
+          <p v-if="form.errors.empresa_id" class="text-red-600 text-xs mt-1">{{ form.errors.empresa_id }}</p>
       </div>
 
       <!-- Autoridad -->
@@ -78,24 +106,44 @@ function submit() {
         </select>
       </div>
 
-      <!-- Fechas -->
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium">Periodo desde</label>
-          <input type="date" v-model="form.periodo_desde" class="mt-1 w-full border rounded px-3 py-2" />
+      <div>
+      <label class="block text-sm font-medium">Periodos</label>
+      <div v-for="(p, i) in form.periodos" :key="i" class="mb-4 border p-2">
+        <select v-model="p.anio" class="border rounded px-2 py-1">
+          <option v-for="anio in [2020,2021,2022,2023,2024,2025]" :key="anio" :value="anio">{{anio}}</option>
+        </select>
+        <div class="grid grid-cols-4 gap-2 mt-2">
+          <label v-for="mes in 12" :key="mes" class="flex items-center gap-1">
+            <input type="checkbox" :checked="p.meses.includes(mes)" @change="toggleMes(i, mes)" />
+            {{ new Date(2000, mes-1, 1).toLocaleString('es-MX',{month:'long'}) }}
+          </label>
         </div>
-        <div>
-          <label class="block text-sm font-medium">Periodo hasta</label>
-          <input type="date" v-model="form.periodo_hasta" class="mt-1 w-full border rounded px-3 py-2" />
-        </div>
+        <button type="button" @click="removePeriodo(i)" class="text-red-500">Eliminar</button>
       </div>
-
+      <button type="button" @click="addPeriodo" class="text-blue-500">+ Añadir año</button>
+    </div>
       <!-- Flags -->
-      <div class="grid grid-cols-2 gap-4">
-        <label class="inline-flex items-center gap-2"><input type="checkbox" v-model="form.rev_gabinete" /> Gabinete</label>
-        <label class="inline-flex items-center gap-2"><input type="checkbox" v-model="form.rev_domiciliaria" /> Domiciliaria</label>
-        <label class="inline-flex items-center gap-2"><input type="checkbox" v-model="form.rev_electronica" /> Electrónica</label>
-        <label class="inline-flex items-center gap-2"><input type="checkbox" v-model="form.rev_secuencial" /> Secuencial</label>
+       <div>
+        <label class="block text-sm font-medium mb-2">Tipo</label>
+        <div class="flex flex-wrap gap-x-8 gap-y-2">
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" value="gabinete" v-model="form.tipo_revision" />
+            <span>Revisión de gabinete</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" value="domiciliaria" v-model="form.tipo_revision" />
+            <span>Visita domiciliaria</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" value="electronica" v-model="form.tipo_revision" />
+            <span>Revisión electrónica</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="radio" value="secuencial" v-model="form.tipo_revision" />
+            <span>Revisión secuencial</span>
+          </label>
+        </div>
+        <p v-if="form.errors.tipo_revision" class="text-red-600 text-xs mt-1">{{ form.errors.tipo_revision }}</p>
       </div>
 
       <!-- Otros -->

@@ -11,8 +11,7 @@ const props = defineProps<{
       empresa?: { id:number, razonsocial:string } | null
       autoridad?: { id:number, nombre:string } | null
       revision: string
-      periodo_desde?: string|null
-      periodo_hasta?: string|null
+      periodo_etiqueta?: string|null
       rev_gabinete?: boolean
       rev_domiciliaria?: boolean
       rev_electronica?: boolean
@@ -80,7 +79,7 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
 
           <!-- Periodo -->
           <td class="px-4 py-2">
-            {{ fmt(rev.periodo_desde) }} <span v-if="rev.periodo_desde || rev.periodo_hasta">al</span> {{ fmt(rev.periodo_hasta) }}
+            {{ rev.periodo_etiqueta ?? '— —' }}
           </td>
 
           <!-- Estatus -->
