@@ -1,31 +1,50 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3'
-import FormJuicio from './components/FormJuicio.vue'
-
-// Props que manda el controlador create()
-const props = defineProps<{
-  clientes: {id:number; nombre:string}[]
-  autoridades: {id:number; nombre:string}[]
-  abogados: {id:number; nombre:string}[]
-  etiquetas: {id:number; nombre:string}[]
+import { useForm, Link } from '@inertiajs/vue3'
+import FormJuicio from './components/FormJuicio.vue';
+defineProps<{
+  clientes: { id: number; nombre: string }[]
+  autoridades: { id: number; nombre: string }[]
+  abogados: { id: number; nombre: string }[]
+  etiquetas: { id: number; nombre: string }[]
 }>()
+
+const form = useForm({
+  nombre: '',
+  tipo: 'nulidad',
+  cliente_id: '',
+  autoridad_id: '',
+  fecha_inicio: '',
+  monto: '',
+  observaciones_monto: '',
+  resolucion_impugnada: '',
+  garantia: '',
+  numero_juicio: '',
+  numero_expediente: '',
+  estatus: 'juicio',
+  abogado_id: '',
+  etiquetas: [] as number[],
+  periodos: [] as { anio:number; meses:number[] }[],
+})
+
+function submit() {
+  form.post(route('juicios.store'))
+}
 </script>
 
 <template>
-  <TopNavLayout />
-  <div class="bg-white rounded-xl p-5 shadow space-y-4">
-    <div class="flex items-center gap-2">
-      <h1 class="text-2xl font-semibold">Nuevo Juicio</h1>
-      <Link :href="route('juicios.index')" class="ml-auto text-indigo-600 hover:underline">Volver</Link>
-    </div>
+  <div class="p-6 space-y-6">
+    <h1 class="text-2xl font-bold mb-4">Nuevo Juicio</h1>
 
     <FormJuicio
+      :form="form"
+      :clientes="clientes"
+      :autoridades="autoridades"
+      :abogados="abogados"
+      :etiquetas="etiquetas"
       mode="create"
-      :initial="{ }"
-      :clientes="props.clientes"
-      :autoridades="props.autoridades"
-      :abogados="props.abogados"
-      :etiquetas="props.etiquetas"
+      submitRoute="juicios.store"
+      method="post"
+      @submit="submit"
     />
   </div>
 </template>

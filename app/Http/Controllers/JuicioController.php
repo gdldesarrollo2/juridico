@@ -146,37 +146,47 @@ class JuicioController extends Controller
 public function store(Request $request)
 {
     $validated = $request->validate([
-        'nombre'               => ['required', 'string', 'max:255'],
-        'tipo'                 => ['required', 'in:nulidad,revocacion'],
-        'cliente_id'           => ['required', 'exists:clientes,id'],
-        'autoridad_id'         => ['nullable', 'exists:autoridades,id'],
-        'fecha_inicio'         => ['nullable', 'date'],
-        'monto'                => ['nullable', 'numeric', 'min:0'],
-        'observaciones_monto'  => ['nullable', 'string'],
-        'resolucion_impugnada' => ['nullable', 'string', 'max:255'],
-        'garantia'             => ['nullable', 'string', 'max:255'],
-        'numero_juicio'        => ['nullable', 'string', 'max:255'],
-        'numero_expediente'    => ['nullable', 'string', 'max:255'],
-        'estatus'              => ['required', 'in:juicio,autorizado,en_proceso,concluido'],
-        'abogado_id'           => ['nullable', 'exists:abogados,id'],
-        'etiquetas'            => ['array'],
-        'etiquetas.*'          => ['exists:etiquetas,id'],
+        'nombre'               => ['required','string','max:255'],
+        'tipo'                 => ['required','in:nulidad,revocacion'],
+        'cliente_id'           => ['required','exists:clientes,id'],
+        'autoridad_id'         => ['nullable','exists:autoridades,id'],
+        'fecha_inicio'         => ['nullable','date'],
+        'monto'                => ['nullable','numeric','min:0'],
+        'observaciones_monto'  => ['nullable','string'],
+        'resolucion_impugnada' => ['nullable','string','max:255'],
+        'garantia'             => ['nullable','string','max:255'],
+        'numero_juicio'        => ['nullable','string','max:255'],
+        'numero_expediente'    => ['nullable','string','max:255'],
+        'estatus'              => ['required','in:juicio,autorizado,en_proceso,concluido'],
+        'abogado_id'           => ['nullable','exists:abogados,id'],
+        // ← NUEVO
+        'periodos'              => ['required','array','min:1'],
+        'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
+        'periodos.*.meses'      => ['required','array','min:1'],
+        'periodos.*.meses.*'    => ['integer','between:1,12','distinct'],
     ]);
 
-    // separar etiquetas
-    $etiquetas = $validated['etiquetas'] ?? [];
-    unset($validated['etiquetas']);
+    // normaliza a mapa {"2024":[1,2], "2025":[3,4]}
+    $periodosMapa = [];
+    foreach ($validated['periodos'] as $p) {
+        $anio  = (string) $p['anio'];
+        $meses = array_values(array_unique(array_map('intval', $p['meses'])));
+        sort($meses);
+        $periodosMapa[$anio] = $meses;
+    }
 
-    // crear juicio
-    $juicio = Juicio::create($validated);
+    $data = $validated;
+    $data['periodos'] = $periodosMapa;
 
-    // guardar en la pivot etiqueta_juicio
-    $juicio->etiquetas()->sync($etiquetas);
+    // si quieres deprecar fecha_inicio:
+    // $data['fecha_inicio'] = null;
 
-    return redirect()
-        ->route('juicios.index')
+    $juicio = Juicio::create($data);
+
+    return redirect()->route('juicios.index')
         ->with('success', 'Juicio creado correctamente.');
 }
+
  // Formulario de edición
  public function edit(Juicio $juicio)
 {
@@ -211,27 +221,43 @@ public function store(Request $request)
 }
     // Actualización (datos base + pivot etiquetas)
     public function update(Request $request, Juicio $juicio)
-    {
-        $validated = $request->validate($this->rules());
+{
+    $validated = $request->validate([
+        'nombre'               => ['required','string','max:255'],
+        'tipo'                 => ['required','in:nulidad,revocacion'],
+        'cliente_id'           => ['required','exists:clientes,id'],
+        'autoridad_id'         => ['nullable','exists:autoridades,id'],
+        'fecha_inicio'         => ['nullable','date'],
+        'monto'                => ['nullable','numeric','min:0'],
+        'observaciones_monto'  => ['nullable','string'],
+        'resolucion_impugnada' => ['nullable','string','max:255'],
+        'garantia'             => ['nullable','string','max:255'],
+        'numero_juicio'        => ['nullable','string','max:255'],
+        'numero_expediente'    => ['nullable','string','max:255'],
+        'estatus'              => ['required','in:juicio,autorizado,en_proceso,concluido'],
+        'abogado_id'           => ['nullable','exists:abogados,id'],
+        // ← NUEVO
+        'periodos'              => ['required','array','min:1'],
+        'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
+        'periodos.*.meses'      => ['required','array','min:1'],
+        'periodos.*.meses.*'    => ['integer','between:1,12','distinct'],
+    ]);
 
-        // Separa etiquetas del resto
-        $etiquetas = $validated['etiquetas'] ?? null; // null = no tocar; [] = vaciar
-        unset($validated['etiquetas']);
-
-        DB::transaction(function () use ($juicio, $validated, $etiquetas) {
-            // Actualiza campos simples
-            $juicio->fill($validated)->save();
-
-            // Manejo de pivot:
-            // - Si viene null: no cambiar etiquetas
-            // - Si viene array: sincroniza exactamente esas (incluye vacío para limpiar)
-            if (is_array($etiquetas)) {
-                $juicio->etiquetas()->sync($etiquetas);
-            }
-        });
-
-        return redirect()
-            ->route('juicios.index')
-            ->with('success', 'Juicio actualizado correctamente.');
+    $periodosMapa = [];
+    foreach ($validated['periodos'] as $p) {
+        $anio  = (string) $p['anio'];
+        $meses = array_values(array_unique(array_map('intval', $p['meses'])));
+        sort($meses);
+        $periodosMapa[$anio] = $meses;
     }
+
+    $data = $validated;
+    $data['periodos'] = $periodosMapa;
+
+    $juicio->update($data);
+
+    return redirect()->route('juicios.index')
+        ->with('success', 'Juicio actualizado correctamente.');
+}
+
 }
