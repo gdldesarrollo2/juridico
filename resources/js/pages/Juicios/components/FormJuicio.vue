@@ -74,6 +74,7 @@ function onSubmit() {
         <option value="nulidad">Nulidad</option>
         <option value="revocacion">Revocación</option>
       </select>
+
     </div>
 
     <!-- Cliente -->
@@ -93,48 +94,63 @@ function onSubmit() {
         <option value="">—</option>
         <option v-for="a in autoridades" :key="a.id" :value="a.id">{{ a.nombre }}</option>
       </select>
+      <p v-if="form.errors.autoridad_id" class="text-red-600 text-xs">{{ form.errors.autoridad_id }}</p>
+
     </div>
 
     <!-- Fecha inicio -->
     <div>
       <label class="block text-sm font-medium">Fecha de inicio</label>
       <input type="date" v-model="form.fecha_inicio" class="border rounded px-2 py-1 w-full" />
+      <p v-if="form.errors.fecha_inicio" class="text-red-600 text-xs">{{ form.errors.fecha_inicio }}</p>
+
     </div>
 
     <!-- Monto -->
     <div>
       <label class="block text-sm font-medium">Monto</label>
       <input type="number" v-model="form.monto" class="border rounded px-2 py-1 w-full" />
+      <p v-if="form.errors.monto" class="text-red-600 text-xs">{{ form.errors.monto }}</p>
+
     </div>
 
     <!-- Observaciones monto -->
     <div>
       <label class="block text-sm font-medium">Observaciones monto</label>
       <textarea v-model="form.observaciones_monto" class="border rounded px-2 py-1 w-full"></textarea>
+      <p v-if="form.errors.observaciones_monto" class="text-red-600 text-xs">{{ form.errors.observaciones_monto }}</p>
+
     </div>
 
     <!-- Resolución impugnada -->
     <div>
       <label class="block text-sm font-medium">Resolución impugnada</label>
-      <input v-model="form.resolucion_impugnada" class="border rounded px-2 py-1 w-full" />
+      <textarea v-model="form.resolucion_impugnada" class="border rounded px-2 py-1 w-full"></textarea>
+     <p v-if="form.errors.resolucion_impugnada" class="text-red-600 text-xs">{{ form.errors.resolucion_impugnada }}</p>
+
     </div>
 
     <!-- Garantía -->
     <div>
       <label class="block text-sm font-medium">Garantía</label>
-      <input v-model="form.garantia" class="border rounded px-2 py-1 w-full" />
+      <textarea v-model="form.garantia" class="border rounded px-2 py-1 w-full"></textarea>
+     <p v-if="form.errors.garantia" class="text-red-600 text-xs">{{ form.errors.garantia }}</p>
     </div>
 
     <!-- Número Juicio -->
     <div>
       <label class="block text-sm font-medium">Número Juicio</label>
       <input v-model="form.numero_juicio" class="border rounded px-2 py-1 w-full" />
+      <p v-if="form.errors.numero_juicio" class="text-red-600 text-xs">{{ form.errors.numero_juicio }}</p>
+
     </div>
 
     <!-- Número Expediente -->
     <div>
       <label class="block text-sm font-medium">Número Expediente</label>
       <input v-model="form.numero_expediente" class="border rounded px-2 py-1 w-full" />
+      <p v-if="form.errors.numero_expediente" class="text-red-600 text-xs">{{ form.errors.numero_expediente }}</p>
+
     </div>
 
     <!-- Estatus -->
@@ -145,7 +161,7 @@ function onSubmit() {
         <option value="autorizado">Autorizado</option>
         <option value="en_proceso">En proceso</option>
         <option value="concluido">Concluido</option>
-      </select>
+      </select> 
     </div>
 
     <!-- Abogado -->
@@ -155,6 +171,8 @@ function onSubmit() {
         <option value="">—</option>
         <option v-for="ab in abogados" :key="ab.id" :value="ab.id">{{ ab.nombre }}</option>
       </select>
+      <p v-if="form.errors.abogado_id" class="text-red-600 text-xs">{{ form.errors.abogado_id }}</p>
+
     </div>
 
     <!-- Etiquetas -->
@@ -163,6 +181,7 @@ function onSubmit() {
       <select v-model="form.etiquetas" multiple class="border rounded px-2 py-1 w-full">
         <option v-for="e in etiquetas" :key="e.id" :value="e.id">{{ e.nombre }}</option>
       </select>
+
     </div>
 
     <!-- ====== BLOQUE PERIODOS ====== -->

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
 import FormJuicio from './components/FormJuicio.vue';
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 defineProps<{
   clientes: { id: number; nombre: string }[]
   autoridades: { id: number; nombre: string }[]
@@ -32,6 +33,8 @@ function submit() {
 </script>
 
 <template>
+    <TopNavLayout>
+
   <div class="p-6 space-y-6">
     <h1 class="text-2xl font-bold mb-4">Nuevo Juicio</h1>
 
@@ -47,4 +50,5 @@ function submit() {
       @submit="submit"
     />
   </div>
+  </TopNavLayout>
 </template>

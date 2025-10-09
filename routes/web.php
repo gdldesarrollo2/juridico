@@ -12,7 +12,6 @@ use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
 
-
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
@@ -60,5 +59,11 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
     Route::post('/calendario/upload', [CalendarioController::class, 'upload'])->name('calendario.upload');
 });
+
+Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarForm'])
+    ->name('abogados.reasignar.form');
+
+Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
+    ->name('abogados.reasignar.store');
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

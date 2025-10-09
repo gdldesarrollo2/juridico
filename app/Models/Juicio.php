@@ -20,26 +20,62 @@ protected $casts = [
 ];
 
 // Opcional: que viaje siempre al front
-protected $appends = ['periodo_etiqueta'];
+protected $appends = ['periodo_resumen'];
 
-public function getPeriodoEtiquetaAttribute(): string
-{
-    if (!is_array($this->periodos) || empty($this->periodos)) return '— —';
+ public function getPeriodoResumenAttribute(): string
+    {
+        $p = $this->periodos;
 
-    $mesCorto = [1=>'Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        // Normalización: puede venir como string JSON, mapa {"2025":[1,2]}, o arreglo [{anio,meses}]
+        try {
+            if (is_string($p) && trim($p) !== '') {
+                $p = json_decode($p, true);
+            }
+        } catch (\Throwable $e) {
+            $p = [];
+        }
 
-    $map = $this->periodos;
-    ksort($map, SORT_NUMERIC);
+        $arr = [];
+        if (is_array($p)) {
+            // Caso arreglo [{anio, meses}]
+            if (isset($p[0]) && is_array($p[0]) && array_key_exists('anio',$p[0])) {
+                foreach ($p as $item) {
+                    $arr[] = [
+                        'anio'  => (int) ($item['anio'] ?? 0),
+                        'meses' => collect($item['meses'] ?? [])->map(fn($m)=>(int)$m)->sort()->values()->all(),
+                    ];
+                }
+            } else {
+                // Caso mapa {"2025":[1,2], ...}
+                foreach ($p as $anio => $meses) {
+                    $arr[] = [
+                        'anio'  => (int) $anio,
+                        'meses' => collect($meses ?? [])->map(fn($m)=>(int)$m)->sort()->values()->all(),
+                    ];
+                }
+            }
+        }
 
-    $trozos = [];
-    foreach ($map as $anio => $meses) {
-        $arr = array_map('intval', (array)$meses);
-        sort($arr, SORT_NUMERIC);
-        $labels = array_map(fn($m) => $mesCorto[$m] ?? (string)$m, $arr);
-        $trozos[] = $anio . ': ' . implode(', ', $labels);
+        if (empty($arr)) {
+            return '—';
+        }
+
+        // Orden descendente por año
+        usort($arr, fn($a,$b) => $b['anio'] <=> $a['anio']);
+
+        $MES_ABBR = ['', 'Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+        $parts = array_map(function ($row) use ($MES_ABBR) {
+            $anio  = $row['anio'];
+            $meses = $row['meses'] ?? [];
+            if (empty($meses)) return "{$anio}: —";
+            $textoMeses = implode(', ', array_map(fn($m) => $MES_ABBR[$m] ?? $m, $meses));
+            return "{$anio}: {$textoMeses}";
+        }, $arr);
+
+        return implode(' · ', $parts);
     }
-    return implode(' · ', $trozos);
-}
+
 
 
     public function cliente(){ return $this->belongsTo(Cliente::class); }
@@ -53,4 +89,8 @@ public function getPeriodoEtiquetaAttribute(): string
         // Si prefieres otro orden:
         // return $this->hasMany(\App\Models\Etapa::class)->latest('id');
     }
+    public function abogadosHistorial()
+{
+    return $this->hasMany(\App\Models\JuicioAbogadoHistorial::class);
+}
 }

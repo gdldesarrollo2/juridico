@@ -18,4 +18,8 @@ class Abogado extends Model
     {
         return $this->belongsTo(User::class, 'usuario_id');
     }
+   public function juicios()
+    {
+        return $this->hasMany(Juicio::class, 'abogado_id');
+    }
 }
