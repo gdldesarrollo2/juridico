@@ -7,31 +7,52 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Juicio;
 use App\Support\JuicioAbogadoService;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 class AbogadoController extends Controller
 {
     /**
      * Mostrar listado de abogados.
      */
-  public function index()
+public function index()
 {
+    // 1) Saca los conteos de juicios por abogado con UNA consulta
+    $jt = (new Juicio)->getTable();
+
+    $countsQuery = DB::table($jt)
+        ->select('abogado_id', DB::raw('COUNT(*) as c'))
+        ->groupBy('abogado_id');
+
+    // Si tu tabla tiene soft-deletes y quieres excluir borrados:
+    if (Schema::hasColumn($jt, 'deleted_at')) {
+        $countsQuery->whereNull('deleted_at');
+    }
+
+    // ->pluck(valor, clave) => [abogado_id => c]
+    $counts = $countsQuery->pluck('c', 'abogado_id'); // e.g. [1 => 3, 5 => 2, ...]
+
+    // 2) Trae los abogados paginados (sin subselects)
+    $abTable = (new Abogado)->getTable();
+
     $paginator = Abogado::query()
-        ->withCount('juicios')       // ← genera juicios_count
-        ->select('abogados.*')       // ← si usas select(s), esto evita que se pierda
+        ->select("$abTable.*")
         ->orderBy('nombre')
         ->paginate(10)
         ->withQueryString();
 
-    // En Laravel 10+ puedes usar through(); en 9 usa getCollection()->transform()
-    $paginator->through(function ($a) {
+    // 3) Inyecta el count desde el array $counts a cada fila
+    $paginator->getCollection()->transform(function ($a) use ($counts) {
         return [
             'id'            => $a->id,
             'nombre'        => $a->nombre,
             'estatus'       => $a->estatus,
-            'juicios_count' => (int) ($a->juicios_count ?? 0), // ← lo mandamos seguro
-            // agrega otras columnas que pintas en la tabla:
-            // 'usuario'    => $a->usuario?->name ?? '—',
+            'usuario_id'    => $a->usuario_id,
+            'juicios_count' => (int) ($counts[$a->id] ?? 0), // 👈 aquí forzamos el conteo correcto
         ];
     });
+
+    // Descomenta 1 vez para verificar que llega bien:
+    // dd($paginator->toArray()['data'][0]);
 
     return Inertia::render('Abogados/Index', [
         'abogados' => $paginator,

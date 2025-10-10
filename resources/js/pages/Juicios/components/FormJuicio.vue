@@ -109,7 +109,7 @@ function onSubmit() {
     <!-- Monto -->
     <div>
       <label class="block text-sm font-medium">Monto</label>
-      <input type="number" v-model="form.monto" class="border rounded px-2 py-1 w-full" />
+      <input type="number" v-model="form.monto"  class="border rounded px-2 py-1 w-full" />
       <p v-if="form.errors.monto" class="text-red-600 text-xs">{{ form.errors.monto }}</p>
 
     </div>

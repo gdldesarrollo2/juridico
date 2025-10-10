@@ -13,4 +13,5 @@ class JuicioAbogadoHistorial extends Model
 
     public function juicio(){ return $this->belongsTo(Juicio::class); }
     public function abogado(){ return $this->belongsTo(Abogado::class); }
+    public function usuario() { return $this->belongsTo(\App\Models\User::class, 'usuario_id'); }
 }

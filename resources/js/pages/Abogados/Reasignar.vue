@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
-
+import TopNavLayout from '@/Layouts/TopNavLayout.vue'
 type Abogado = { id:number; nombre:string }
 type Juicio   = { id:number; nombre:string; fecha_inicio:string|null; cliente?:{ id:number; nombre:string } }
 
@@ -23,6 +23,7 @@ function submit() {
 </script>
 
 <template>
+  <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <h1 class="text-xl font-semibold">Reasignar juicios de {{ abogado.nombre }}</h1>

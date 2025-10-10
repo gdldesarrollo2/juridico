@@ -158,8 +158,8 @@ public function store(Request $request)
         'periodos'              => ['required','array','min:1'],
         'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
         'periodos.*.meses'      => ['required','array','min:1'],
-        'periodos.*.meses.*'    => ['integer','between:1,12','distinct'],
-    ]);
+        'periodos.*.meses.*'   => ['required', 'integer', 'between:1,12']
+        ]);
 
     // normaliza a mapa {"2024":[1,2], "2025":[3,4]}
     $periodosMapa = [];
@@ -242,5 +242,86 @@ public function edit(Juicio $juicio)
     return redirect()->route('juicios.index')
         ->with('success', 'Juicio actualizado correctamente.');
 }
+public function show(\App\Models\Juicio $juicio)
+{
+    // Cargar info general
+    $juicio->load([
+        'cliente:id,nombre',
+        'autoridad:id,nombre',
+        'abogado:id,nombre',
+        'etiquetas:id,nombre',
+    ]);
+
+    // Formatear periodo (si guardas JSON con {año:[meses]})
+    $periodoStr = $this->formatPeriodos($juicio->periodos);
+
+    // Etapas
+    $etapas = $juicio->etapas()
+        ->with([
+            'etiqueta:id,nombre',
+            'usuario:id,name',
+        ])
+        ->get([
+            'id','etiqueta_id','etapa','usuario_id','rol','comentarios',
+            'dias_vencimiento','fecha_inicio','fecha_vencimiento','estatus','archivo_path','created_at'
+        ]);
+
+    // Historial de abogados
+    $historial = $juicio->abogadosHistorial()
+        ->with([
+            'abogado:id,nombre',
+            'usuario:id,name',
+        ])
+        ->get([
+            'id','juicio_id','abogado_id','usuario_id',
+            'motivo','asignado_desde','asignado_hasta','created_at'
+        ]);
+
+    // Empaquetar props
+    return Inertia::render('Juicios/Show', [
+        'juicio' => [
+            'id'                => $juicio->id,
+            'numero_juicio'     => $juicio->numero_juicio,
+            'numero_expediente' => $juicio->numero_expediente,
+            'nombre'            => $juicio->nombre,
+            'tipo'              => $juicio->tipo,
+            'cliente'           => optional($juicio->cliente)->nombre,
+            'autoridad'         => optional($juicio->autoridad)->nombre,
+            'abogado'           => optional($juicio->abogado)->nombre,
+            'estatus'           => $juicio->estatus,
+            'monto'             => $juicio->monto,
+            'fecha_inicio'      => $juicio->fecha_inicio,
+            'observaciones_monto' => $juicio->observaciones_monto,
+            'resolucion_impugnada'=> $juicio->resolucion_impugnada,
+            'garantia'            => $juicio->garantia,
+            'etiquetas'         => $juicio->etiquetas->pluck('nombre'),
+            'periodo'           => $periodoStr, // “2024: Ene, Feb | 2025: Mar, Abr”
+        ],
+        'etapas'    => $etapas,
+        'historial' => $historial,
+    ]);
+}
+
+/**
+ * Convierte el JSON de periodos a texto bonito.
+ * Ej: {"2024":[1,2],"2025":[3,4]} => "2024: Ene, Feb | 2025: Mar, Abr"
+ */
+private function formatPeriodos($periodos): ?string
+{
+    if (!$periodos) return null;
+    if (is_string($periodos)) {
+        $periodos = json_decode($periodos, true);
+    }
+    if (!is_array($periodos)) return null;
+
+    $meses = [1=>'Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    $bloques = [];
+    foreach ($periodos as $anio => $arr) {
+        $nombres = collect($arr)->sort()->map(fn($m) => $meses[(int)$m] ?? $m)->implode(', ');
+        $bloques[] = "$anio: $nombres";
+    }
+    return implode(' | ', $bloques);
+}
+
 
 }

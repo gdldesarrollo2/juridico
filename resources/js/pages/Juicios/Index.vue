@@ -260,6 +260,13 @@ const estatusClass = (s:string) => {
               <div class="flex gap-2">
                 <Link :href="route('juicios.edit', j.id)" class="px-3 py-1 rounded bg-amber-500 text-white">Editar</Link>
                 <Link :href="route('juicios.etapas.index', { juicio: j.id })" class="px-3 py-1 rounded bg-indigo-600 text-white">+ Etapas</Link>
+                <Link
+  :href="route('juicios.show', j.id)"
+  class="px-3 py-1 rounded border text-gray-700 hover:bg-gray-50 mr-2"
+>
+  Ver juicio
+</Link>
+
               </div>
             </td>
           </tr>

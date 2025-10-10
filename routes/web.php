@@ -12,10 +12,7 @@ use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
-
+Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
@@ -32,7 +29,7 @@ Route::prefix('juicios/{juicio}')->group(function () {
 // Si no quieres usar resource, al menos define:
 Route::get('/juicios/{juicio}/edit', [JuicioController::class, 'edit'])->name('juicios.edit');
 Route::put('/juicios/{juicio}', [JuicioController::class, 'update'])->name('juicios.update');
-
+Route::get('/juicios/{juicio}', [JuicioController::class, 'show'])->name('juicios.show');
 
 Route::prefix('clientes')->group(function () {
     Route::get('/', [ClienteController::class, 'index'])->name('clientes.index');      // opcional
