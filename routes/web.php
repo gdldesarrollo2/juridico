@@ -12,11 +12,7 @@ use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
 
-
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
-
+Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
@@ -33,7 +29,7 @@ Route::prefix('juicios/{juicio}')->group(function () {
 // Si no quieres usar resource, al menos define:
 Route::get('/juicios/{juicio}/edit', [JuicioController::class, 'edit'])->name('juicios.edit');
 Route::put('/juicios/{juicio}', [JuicioController::class, 'update'])->name('juicios.update');
-
+Route::get('/juicios/{juicio}', [JuicioController::class, 'show'])->name('juicios.show');
 
 Route::prefix('clientes')->group(function () {
     Route::get('/', [ClienteController::class, 'index'])->name('clientes.index');      // opcional
@@ -60,5 +56,11 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
     Route::post('/calendario/upload', [CalendarioController::class, 'upload'])->name('calendario.upload');
 });
+
+Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarForm'])
+    ->name('abogados.reasignar.form');
+
+Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
+    ->name('abogados.reasignar.store');
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

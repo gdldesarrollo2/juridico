@@ -9,17 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-     public function up(): void
+    public function up(): void
     {
         Schema::table('juicios', function (Blueprint $table) {
-            $table->json('periodos')->nullable()->after('fecha_inicio'); // {"2024":[1,2], "2025":[3,4]}
+            //
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('juicios', function (Blueprint $table) {
-            $table->dropColumn('periodos');
+            //
         });
     }
 };
