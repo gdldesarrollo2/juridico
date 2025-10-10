@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-import TopNavLayout from '@/Layouts/TopNavLayout.vue';
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 type AbogadoRow = {
   id: number
   nombre: string
