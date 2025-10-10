@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
-import TopNavLayout from '@/Layouts/TopNavLayout.vue'
+import TopNavLayout from '@/layouts/TopNavLayout.vue'
 type Abogado = { id:number; nombre:string }
 type Juicio   = { id:number; nombre:string; fecha_inicio:string|null; cliente?:{ id:number; nombre:string } }
 
