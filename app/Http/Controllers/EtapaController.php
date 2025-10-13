@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Abogado;
 use App\Models\Juicio;
 use App\Models\Etapa;         // Modelo de la tabla etapas del juicio (ajusta el nombre si es distinto)
 use App\Models\Etiqueta;
@@ -56,8 +57,7 @@ class EtapaController extends Controller
     public function index(Juicio $juicio)
     {
         // Cátalogos para selects del formulario (como tu vista solicita)
-        $catalogoEtiquetas = Etiqueta::select('id','nombre')->orderBy('nombre')->get();
-        $catalogoUsuarios  = User::select('id','name')->orderBy('name')->get();
+         $catalogoAbogados  = Abogado::select('id','nombre')->orderBy('nombre')->get();
 
         // Estatus que usa tu UI
         $estatuses = collect([
@@ -71,7 +71,7 @@ class EtapaController extends Controller
         $etapas = Etapa::query()
             ->with([
                 'etiqueta:id,nombre',
-                'usuario:id,name',
+                'abogado:id,nombre',
             ])
             ->where('juicio_id', $juicio->id)
             ->orderByDesc('fecha_vencimiento')
@@ -80,7 +80,7 @@ class EtapaController extends Controller
                 'id'                => $e->id,
                 'etiqueta'          => $e->relationLoaded('etiqueta') ? $e->etiqueta : null,
                 'etapa'             => $e->etapa,
-                'usuario'           => $e->relationLoaded('usuario') ? $e->usuario : null,
+                'abogado'           => $e->relationLoaded('abogado') ? $e->abogado : null,
                 'rol'               => $e->rol,
                 'comentarios'       => $e->comentarios,
                 'dias_vencimiento'  => (int) $e->dias_vencimiento,
@@ -99,7 +99,7 @@ class EtapaController extends Controller
     'fecha_inicio_juicio' => optional($juicio->fecha_inicio)->format('Y-m-d'),
     'catalogos' => [
         'etiquetas' => Etiqueta::select('id','nombre')->orderBy('nombre')->get(),
-        'usuarios'  => User::select('id','name')->orderBy('name')->get(),
+        'abogados'  => Abogado::select('id','nombre')->where('estatus', 'activo')->orderBy('nombre')->get(),
         'estatuses' => [
             ['value'=>'en_tramite','label'=>'En trámite'],
             ['value'=>'en_juicio','label'=>'En juicio'],
@@ -121,7 +121,7 @@ class EtapaController extends Controller
         $data = $request->validate([
             'etiqueta_id'       => ['nullable','integer','exists:etiquetas,id'],
             'etapa'             => ['required','string', Rule::in($etapasValidas)],
-            'usuario_id'        => ['nullable','integer','exists:users,id'], // ajusta a tu tabla si no es users
+            'abogado_id'        => ['nullable','integer','exists:abogados,id'], // ajusta a tu tabla si no es users
             'rol'               => ['nullable','string','max:100'],
             'comentarios'       => ['nullable','string'],
             'fecha_inicio'      => ['required','date'],
@@ -150,7 +150,7 @@ class EtapaController extends Controller
             'juicio_id'         => $juicio->id,
             'etiqueta_id'       => $data['etiqueta_id'] ?: null,
             'etapa'             => $data['etapa'],
-            'usuario_id'        => $data['usuario_id'] ?: null,
+            'abogado_id'        => $data['abogado_id'] ?: null,
             'rol'               => $data['rol'] ?: null,
             'comentarios'       => $data['comentarios'] ?: null,
             'fecha_inicio'      => $fechaInicio->format('Y-m-d'),

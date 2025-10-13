@@ -9,7 +9,7 @@ class Etapa extends Model
 {
     // app/Models/Etapa.php
 protected $fillable = [
-    'juicio_id','etiqueta_id','etapa','usuario_id','rol','comentarios',
+    'juicio_id','etiqueta_id','etapa','abogado_id','rol','comentarios',
     'fecha_inicio',           // ✅
     'dias_vencimiento','fecha_vencimiento','estatus','archivo_path'
 ];
@@ -22,5 +22,6 @@ protected $casts = [
 
     public function juicio(){ return $this->belongsTo(Juicio::class); }
     public function etiqueta(){ return $this->belongsTo(Etiqueta::class); }
-    public function usuario(){ return $this->belongsTo(User::class, 'usuario_id'); }
+    public function abogado(){ return $this->belongsTo(Abogado::class); }
+
 }

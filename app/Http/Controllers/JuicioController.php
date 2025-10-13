@@ -124,7 +124,7 @@ class JuicioController extends Controller
 {
     $clientes    = Cliente::select('id','nombre')->orderBy('nombre')->get();
     $autoridades = Autoridad::select('id','nombre')->orderBy('nombre')->get();
-    $abogados    = Abogado::select('id','nombre')->orderBy('nombre')->get();
+    $abogados    = Abogado::select('id','nombre')->where('estatus', 'activo')->orderBy('nombre')->get();
     $etiquetas   = Etiqueta::select('id','nombre')->orderBy('nombre')->get();
 
     return Inertia::render('Juicios/Create', [

@@ -45,4 +45,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+     public function abogado()
+    {
+        // Si definiste 1:1
+        return $this->hasOne(Abogado::class, 'usuario_id');
+
+        // Si permites varios abogados por usuario (1:N), usa:
+        // return $this->hasMany(Abogado::class, 'usuario_id');
+    }
 }
