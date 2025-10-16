@@ -5,6 +5,7 @@ type AbogadoRow = {
   id: number
   nombre: string
   estatus: 'activo'|'inactivo'
+  email: string,
   juicios_count: number
 }
 
@@ -28,6 +29,7 @@ const props = defineProps<{
         <tr>
           <th class="text-left px-4 py-2">Nombre</th>
           <th class="text-left px-4 py-2">Estatus</th>
+          <th class="text-left px-4 py-2">Email</th>
           <th class="text-left px-4 py-2">Juicios</th>
           <th class="text-left px-4 py-2">Acciones</th>
         </tr>
@@ -42,6 +44,7 @@ const props = defineProps<{
               {{ a.estatus }}
             </span>
           </td>
+          <td class="px-4 py-2">  {{ a.usuario?.email ?? '—' }}</td>
           <td class="px-4 py-2">{{ a.juicios_count }}</td>
 
           <td class="px-4 py-2 space-x-2">
