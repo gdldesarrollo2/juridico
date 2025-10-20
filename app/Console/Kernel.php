@@ -21,7 +21,7 @@ class Kernel extends ConsoleKernel
 protected function schedule(Schedule $schedule): void
 {
     // Corre todos los días a las 8am
-    $schedule->command('notificar:vencimientos')->dailyAt('13:00');
+     $schedule->command('notificar:vencimientos')->everyMinute();
 }
 
 
