@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Etapa;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -11,33 +12,29 @@ class VencimientoProximo extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $etapa;
-
-    public function __construct($etapa)
+    public function __construct(public Etapa $etapa)
     {
-        $this->etapa = $etapa;
+        // Si serializas en cola y no quieres relaciones:
+        // $this->etapa = $etapa->withoutRelations();
     }
 
-    /**
-     * Indica los canales de entrega (correo en este caso).
-     */
-    public function via($notifiable)
+    public function via($notifiable): array
     {
-        return ['mail'];   // 👈 Aquí definimos que se envíe por correo
+        return ['mail']; // y/o 'database'
     }
 
-    /**
-     * Contenido del correo.
-     */
-    public function toMail($notifiable)
+    public function toMail($notifiable): MailMessage
     {
+        $juicio = $this->etapa->juicio; // relación Etapa->juicio
+        $fecha  = optional($this->etapa->fecha_vencimiento)->format('d/m/Y');
+
         return (new MailMessage)
-            ->subject('📌 Vencimiento próximo')
-            ->greeting('Hola ' . $notifiable->name)
+            ->subject('Vencimiento próximo de etapa')
+            ->greeting('Hola '.$notifiable->name)
             ->line('Tienes un vencimiento próximo en tu juicio.')
-            ->line('Etapa: ' . $this->etapa->nombre)
-            ->line('Fecha: ' . $this->etapa->fecha_vencimiento)
-            ->action('Ver Juicio', url('/juicios/' . $this->etapa->juicio_id))
-            ->line('Por favor revisa este vencimiento.');
+            ->line('Etapa: '.$this->etapa->etapa)
+            ->line('Fecha: '.$fecha)
+            ->action('Ver Juicio', route('juicios.show', $juicio->id))
+            ->line('Por favor revisa este vencimiento para tomar las acciones necesarias.');
     }
 }

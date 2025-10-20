@@ -262,7 +262,7 @@ public function show(\App\Models\Juicio $juicio)
             'usuario:id,name',
         ])
         ->get([
-            'id','etiqueta_id','etapa','usuario_id','rol','comentarios',
+            'id','etiqueta_id','etapa','abogado_id','rol','comentarios',
             'dias_vencimiento','fecha_inicio','fecha_vencimiento','estatus','archivo_path','created_at'
         ]);
 
@@ -273,7 +273,7 @@ public function show(\App\Models\Juicio $juicio)
             'usuario:id,name',
         ])
         ->get([
-            'id','juicio_id','abogado_id','usuario_id',
+            'id','juicio_id','abogado_id','abogado_id',
             'motivo','asignado_desde','asignado_hasta','created_at'
         ]);
 

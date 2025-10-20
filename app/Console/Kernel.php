@@ -18,12 +18,12 @@ class Kernel extends ConsoleKernel
     /**
      * Definir la programación de comandos.
      */
-    protected function schedule(Schedule $schedule)
-    {
-        // Ejecutar todos los días a las 8am
-       // $schedule->command('notificar:vencimientos')->dailyAt('08:00');
-           $schedule->command('notificar:vencimientos')->everyMinute();
-    }
+protected function schedule(Schedule $schedule): void
+{
+    // Corre todos los días a las 8am
+    $schedule->command('notificar:vencimientos')->dailyAt('13:00');
+}
+
 
     /**
      * Registrar los comandos para la aplicación.
