@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
 import { computed, watch } from 'vue'
-
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 // --- Tipos auxiliares ---
 type TipoJuicio = 'nulidad' | 'revocacion'
 
@@ -16,14 +16,14 @@ const props = defineProps<{
   fecha_inicio_juicio?: string|null
   catalogos: {
     etiquetas: Array<{id:number; nombre:string}>
-    usuarios: Array<{id:number; name:string}>
+    abogados: Array<{id:number; nombre:string}>
     estatuses: Array<{value:string; label:string}>
   }
   etapas: Array<{
     id:number
     etiqueta?: { id:number; nombre:string } | null
     etapa:string
-    usuario?: { id:number; name:string } | null
+    abogado?: { id:number; nombre:string } | null
     rol?: string|null
     comentarios?: string|null
     dias_vencimiento:number
@@ -42,7 +42,7 @@ const opcionesEtapa = computed<string[]>(() => {
 const form = useForm({
   etiqueta_id: '',
   etapa: '',                   // ← será una opción del catálogo
-  usuario_id: '',
+  abogado_id: '',
   rol: '',
   comentarios: '',
   fecha_inicio: '',
@@ -71,6 +71,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
 </script>
 
 <template>
+  <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-6">
     <div class="text-center">
       <h1 class="text-3xl font-semibold text-gray-900 dark:text-black-100">CAPTURA DE ETAPA DE JUICIO</h1>
@@ -113,10 +114,10 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
 
         <div>
           <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Usuario</label>
-          <select v-model="form.usuario_id"
+          <select v-model="form.abogado_id"
                   class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
             <option value="">—</option>
-            <option v-for="u in catalogos.usuarios" :key="u.id" :value="u.id">{{ u.name }}</option>
+            <option v-for="u in catalogos.abogados" :key="u.id" :value="u.id">{{ u.nombre }}</option>
           </select>
         </div>
 
@@ -193,7 +194,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
             <td class="px-4 py-2">{{ fmtDate(e.fecha_vencimiento) }}</td>
             <td class="px-4 py-2">{{ e.etiqueta?.nombre ?? '—' }}</td>
             <td class="px-4 py-2">{{ e.etapa }}</td>
-            <td class="px-4 py-2">{{ e.usuario?.name ?? '—' }}</td>
+            <td class="px-4 py-2">{{ e.abogado?.nombre ?? '—' }}</td>
             <td class="px-4 py-2">
               <span class="px-2 py-0.5 rounded text-xs"
                     :class="{

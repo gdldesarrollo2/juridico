@@ -124,7 +124,7 @@ class JuicioController extends Controller
 {
     $clientes    = Cliente::select('id','nombre')->orderBy('nombre')->get();
     $autoridades = Autoridad::select('id','nombre')->orderBy('nombre')->get();
-    $abogados    = Abogado::select('id','nombre')->orderBy('nombre')->get();
+    $abogados    = Abogado::select('id','nombre')->where('estatus', 'activo')->orderBy('nombre')->get();
     $etiquetas   = Etiqueta::select('id','nombre')->orderBy('nombre')->get();
 
     return Inertia::render('Juicios/Create', [
@@ -262,7 +262,7 @@ public function show(\App\Models\Juicio $juicio)
             'usuario:id,name',
         ])
         ->get([
-            'id','etiqueta_id','etapa','usuario_id','rol','comentarios',
+            'id','etiqueta_id','etapa','abogado_id','rol','comentarios',
             'dias_vencimiento','fecha_inicio','fecha_vencimiento','estatus','archivo_path','created_at'
         ]);
 
@@ -273,7 +273,7 @@ public function show(\App\Models\Juicio $juicio)
             'usuario:id,name',
         ])
         ->get([
-            'id','juicio_id','abogado_id','usuario_id',
+            'id','juicio_id','abogado_id','abogado_id',
             'motivo','asignado_desde','asignado_hasta','created_at'
         ]);
 

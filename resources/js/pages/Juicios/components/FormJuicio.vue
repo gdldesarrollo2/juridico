@@ -147,7 +147,7 @@ function onSubmit() {
 
     <!-- Número Expediente -->
     <div>
-      <label class="block text-sm font-medium">Número Expediente</label>
+      <label class="block text-sm font-medium">Número Expediente Administrativo</label>
       <input v-model="form.numero_expediente" class="border rounded px-2 py-1 w-full" />
       <p v-if="form.errors.numero_expediente" class="text-red-600 text-xs">{{ form.errors.numero_expediente }}</p>
 

@@ -36,7 +36,7 @@ Route::prefix('clientes')->group(function () {
     Route::get('/create', [ClienteController::class, 'create'])->name('clientes.create');
     Route::post('/', [ClienteController::class, 'store'])->name('clientes.store');
 });
-Route::resource('abogados', AbogadoController::class)->except(['show']);
+Route::resource('abogados', AbogadoController::class)->except(['show', 'destroy']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');

@@ -22,4 +22,12 @@ class Abogado extends Model
     {
         return $this->hasMany(\App\Models\Juicio::class, 'abogado_id');
     }
+     public function etapas()
+    {
+        return $this->hasMany(\App\Models\Etapa::class, 'abogado_id');
+    }
+      public function getNotificationEmailAttribute(): ?string
+    {
+        return $this->usuario?->email ?? $this->email;
+    }
 }

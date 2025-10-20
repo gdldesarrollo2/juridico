@@ -122,7 +122,7 @@ const dmx = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
               <td class="px-3 py-2">{{ dmx(e.fecha_vencimiento) }}</td>
               <td class="px-3 py-2">{{ e.etiqueta?.nombre ?? '—' }}</td>
               <td class="px-3 py-2">{{ e.etapa }}</td>
-              <td class="px-3 py-2">{{ e.usuario?.name ?? '—' }}</td>
+              <td class="px-3 py-2">{{ e.abogado?.usuario?.name ?? e.abogado?.nombre ?? '—' }}</td>
               <td class="px-3 py-2">{{ e.estatus }}</td>
               <td class="px-3 py-2">{{ e.comentarios ?? '—' }}</td>
               <td class="px-3 py-2">
