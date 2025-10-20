@@ -11,6 +11,9 @@ use App\Http\Controllers\AbogadoController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\Security\RoleController;
+use App\Http\Controllers\Security\UserRoleController;
+use \Spatie\Permission\Middleware\RoleMiddleware;
 
 Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -62,5 +65,20 @@ Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignar
 
 Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
     ->name('abogados.reasignar.store');
+
+
+Route::middleware(['auth', 'role:admin'])->prefix('seguridad')->group(function () {
+    
+    // === Roles & Permisos ===
+    Route::get('roles',               [RoleController::class, 'index'])->name('roles.index');
+    Route::get('roles/{role}/edit',   [RoleController::class, 'edit'])->name('roles.edit');
+    Route::put('roles/{role}',        [RoleController::class, 'update'])->name('roles.update');
+
+    // === Usuarios & Roles ===
+    Route::get('usuarios',            [UserRoleController::class, 'index'])->name('users.roles.index');
+    Route::get('usuarios/{user}/rol', [UserRoleController::class, 'edit'])->name('users.roles.edit');
+    Route::put('usuarios/{user}/rol', [UserRoleController::class, 'update'])->name('users.roles.update');
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
