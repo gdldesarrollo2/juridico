@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 
 const props = defineProps<{
   roles: Array<{ id:number; name:string; permissions_count:number }>
@@ -7,6 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
+  <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-4">
     <h1 class="text-2xl font-semibold">Roles</h1>
 

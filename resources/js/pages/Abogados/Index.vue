@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
+import { computed, watch } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue';
 type AbogadoRow = {
   id: number
@@ -8,10 +9,17 @@ type AbogadoRow = {
   email: string,
   juicios_count: number
 }
-
+type Auth = {
+  user?: { id:number; name:string; email?:string } | null
+  roles?: string[]
+  can?: string[]
+}
 const props = defineProps<{
+    auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
   abogados: { data: AbogadoRow[], links:any[] }
 }>()
+const canList = computed<string[]>(() => props.auth?.can ?? [])
+const $can = (perm: string) => canList.value.includes(perm)
 </script>
 
 <template>
@@ -48,10 +56,10 @@ const props = defineProps<{
           <td class="px-4 py-2">{{ a.juicios_count }}</td>
 
           <td class="px-4 py-2 space-x-2">
-            <Link :href="route('abogados.edit', a.id)" class="px-3 py-1 rounded border">Editar</Link>
+            <Link v-if="$can('ver abogados')"  :href="route('abogados.edit', a.id)" class="px-3 py-1 rounded border">Editar</Link>
 
            <Link
-  v-if="a.juicios_count > 0"
+  v-if="a.juicios_count > 0 && $can('reasignar abogado')" 
   :href="route('abogados.reasignar.form', a.id)"
   class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
 >

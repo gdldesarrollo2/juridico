@@ -12,7 +12,7 @@ const nav = [
   { label: 'Clientes',  to: '/clientes' },
   { label: 'Abogados',  to: '/abogados' },
   { label: 'Revisiones',  to: '/revisiones' },
-  { label: 'Dias festivos',  to: '/calendario' },
+  { label: 'Usuarios',  to: '/seguridad/usuarios' },
 
   // agrega más aquí…
 ]

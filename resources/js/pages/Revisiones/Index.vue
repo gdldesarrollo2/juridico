@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
-
+type Auth = {
+  user?: { id:number; name:string; email?:string } | null
+  roles?: string[]
+  can?: string[]
+}
 const props = defineProps<{
+  auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
   revisiones: {
     data: Array<{
       id: number
@@ -25,13 +30,14 @@ const props = defineProps<{
 onMounted(() => {
   //console.log('REVISIONS', props.revisiones.data)
 })
-
+const canList = computed<string[]>(() => props.auth?.can ?? [])
+const $can = (perm: string) => canList.value.includes(perm)
 const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '—'
 </script>
 
 <template>
  <TopNavLayout></TopNavLayout>
- <Link
+ <Link v-if="$can('crear revision')" 
         :href="route('revisiones.create')"
         class="rounded-md bg-indigo-600 py-1.5 px-3 border border-transparent text-center text-sm text-white transition-all shadow-sm hover:shadow focus:bg-indigo-700 focus:shadow-none active:bg-indigo-700 hover:bg-indigo-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
       >
@@ -106,8 +112,8 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
   >
     Etapas
   </Link>
-            <Link :href="route('revisiones.edit', rev.id)" class="text-blue-600 hover:underline">Editar</Link>
-            <Link as="button" method="delete" :href="route('revisiones.destroy', rev.id)" class="text-red-600 hover:underline">Eliminar</Link>
+            <Link v-if="$can('editar revisiones')"  :href="route('revisiones.edit', rev.id)" class="text-blue-600 hover:underline">Editar</Link>
+            <Link v-if="$can('eliminar revisiones')"  as="button" method="delete" :href="route('revisiones.destroy', rev.id)" class="text-red-600 hover:underline">Eliminar</Link>
           </td>
         </tr>
 

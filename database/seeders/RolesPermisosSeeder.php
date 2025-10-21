@@ -20,6 +20,10 @@ class RolesPermisosSeeder extends Seeder
             'crear revisiones',
             'editar revisiones',
             'eliminar revisiones',
+            'crear etapa de juicio',
+            'ver abogados',
+            'reasignar abogado',
+            'nuevo cliente'
         ];
 
         foreach ($permisos as $permiso) {

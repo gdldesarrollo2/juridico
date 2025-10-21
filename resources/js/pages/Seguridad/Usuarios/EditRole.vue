@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
-
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 const props = defineProps<{
   user: { id:number; name:string; email:string }
   roles: Array<{ id:number; name:string }>
@@ -22,6 +22,7 @@ function submit() {
 </script>
 
 <template>
+    <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <div>

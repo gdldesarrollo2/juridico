@@ -12,6 +12,7 @@ class User extends Authenticatable
         use Notifiable, HasRoles;
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+        protected $guard_name = 'web'; // 👈 añade esto
 
     /**
      * The attributes that are mass assignable.

@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 const props = defineProps<{
   users: Array<{ id:number; name:string; email:string; roles:string[] }>
 }>()
 </script>
 
 <template>
+    <TopNavLayout></TopNavLayout>
+
   <div class="p-6 space-y-6">
     <h1 class="text-2xl font-semibold">Usuarios y Roles</h1>
-
+     <Link
+              :href="route('roles.index')"
+              class="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 "
+            >
+              Roles de usuario
+            </Link><br>
     <table class="min-w-full text-sm bg-white rounded shadow">
       <thead class="bg-gray-100">
         <tr>

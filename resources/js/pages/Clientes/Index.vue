@@ -1,9 +1,17 @@
 <!-- resources/js/Pages/Clientes/Index.vue -->
 <script setup lang="ts">
+import { onMounted, computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/TopNavLayout.vue'
-
-const props = defineProps<{ clientes: any }>()
+type Auth = {
+  user?: { id:number; name:string; email?:string } | null
+  roles?: string[]
+  can?: string[]
+}
+const props = defineProps<{     auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
+clientes: any }>()
+const canList = computed<string[]>(() => props.auth?.can ?? [])
+const $can = (perm: string) => canList.value.includes(perm)
 </script>
 
 <template>
@@ -11,7 +19,7 @@ const props = defineProps<{ clientes: any }>()
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold dark:text-gray-600">Clientes</h1>
-      <Link :href="route('clientes.create')" class="px-3 py-2 rounded bg-blue-600 text-white">Nuevo</Link>
+      <Link  v-if="$can('nuevo cliente')" :href="route('clientes.create')" class="px-3 py-2 rounded bg-blue-600 text-white">Nuevo</Link>
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded shadow overflow-x-auto">

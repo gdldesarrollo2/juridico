@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed,reactive, watch } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
 
 type Opcion = { id:number; nombre:string }
 type EstatusOpt = { value:string; label:string }
 type SortOpt = { value:string; label:string }
-
+// ===== Tipos opcionales para TS =====
+type Auth = {
+  user?: { id:number; name:string; email?:string } | null
+  roles?: string[]
+  can?: string[]
+}
 const props = defineProps<{
+  auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
   juicios: {
     data: Array<{
       id: number
@@ -45,6 +51,9 @@ const props = defineProps<{
   }
 }>()
 
+// Permisos seguros (sin usePage)
+const canList = computed<string[]>(() => props.auth?.can ?? [])
+const $can = (perm: string) => canList.value.includes(perm)
 // ====== Filtros (estado local) ======
 const f = reactive({
   q: props.filters.q ?? '',
@@ -258,9 +267,15 @@ const estatusClass = (s:string) => {
             <td class="px-3 py-2">{{ formatPeriodos(j) }}</td>
             <td class="px-3 py-2">
               <div class="flex gap-2">
-                <Link :href="route('juicios.edit', j.id)" class="px-3 py-1 rounded bg-amber-500 text-white">Editar</Link>
-                <Link :href="route('juicios.etapas.index', { juicio: j.id })" class="px-3 py-1 rounded bg-indigo-600 text-white">+ Etapas</Link>
-                <Link
+               <Link
+                v-if="$can('editar juicios')"
+                :href="route('juicios.edit', j.id)"
+                class="px-3 py-1 rounded bg-amber-500 text-white hover:bg-amber-600"
+              >
+                Editar
+              </Link>
+               <Link v-if="$can('crear juicios')" :href="route('juicios.etapas.index', { juicio: j.id })" class="px-3 py-1 rounded bg-indigo-600 text-white">+ Etapas</Link>
+                <Link v-if="$can('ver juicios')"
   :href="route('juicios.show', j.id)"
   class="px-3 py-1 rounded border text-gray-700 hover:bg-gray-50 mr-2"
 >

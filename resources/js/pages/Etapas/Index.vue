@@ -4,8 +4,13 @@ import { computed, watch } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue';
 // --- Tipos auxiliares ---
 type TipoJuicio = 'nulidad' | 'revocacion'
-
+type Auth = {
+  user?: { id:number; name:string; email?:string } | null
+  roles?: string[]
+  can?: string[]
+}
 const props = defineProps<{
+    auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
   catalogoEtapas: Record<TipoJuicio, string[]>
   juicio: {
     id: number
@@ -33,7 +38,9 @@ const props = defineProps<{
     created_at:string
   }>
 }>()
-
+// Permisos seguros (sin usePage)
+const canList = computed<string[]>(() => props.auth?.can ?? [])
+const $can = (perm: string) => canList.value.includes(perm)
 // === Opciones de etapa según el tipo del juicio ===
 const opcionesEtapa = computed<string[]>(() => {
   return props.catalogoEtapas[props.juicio.tipo] ?? []
@@ -169,7 +176,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
 
       <div class="flex justify-end gap-2">
         <Link :href="route('juicios.index')" class="px-4 py-2 rounded border dark:border-gray-600 dark:text-gray-900">Volver</Link>
-        <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" :disabled="form.processing">
+        <button  v-if="$can('crear etapa de juicio')" type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" :disabled="form.processing">
           Guardar
         </button>
       </div>
