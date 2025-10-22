@@ -37,7 +37,7 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
 
 <template>
  <TopNavLayout></TopNavLayout>
- <Link v-if="$can('crear revision')" 
+ <Link v-if="$can('crear revisiones')" 
         :href="route('revisiones.create')"
         class="rounded-md bg-indigo-600 py-1.5 px-3 border border-transparent text-center text-sm text-white transition-all shadow-sm hover:shadow focus:bg-indigo-700 focus:shadow-none active:bg-indigo-700 hover:bg-indigo-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
       >

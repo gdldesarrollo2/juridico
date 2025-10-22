@@ -1,74 +1,84 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 import { useForm, Link } from '@inertiajs/vue3'
-import TopNavLayout from '@/layouts/TopNavLayout.vue'
-type Abogado = { id:number; nombre:string }
-type Juicio   = { id:number; nombre:string; fecha_inicio:string|null; cliente?:{ id:number; nombre:string } }
 
 const props = defineProps<{
-  abogado: { id:number; nombre:string; estatus:string }
-  juicios: Juicio[]
-  abogadosActivos: Abogado[]
-  nextStatus: 'activo'|'inactivo'
+  abogado: { id:number; nombre:string }
+  candidatos: { id:number; nombre:string }[]
+  juicios: { id:number; nombre:string }[]
 }>()
 
 const form = useForm({
-  reasignaciones: props.juicios.map(j => ({ id: j.id, nuevo_abogado_id: null as number|null })),
-  nextStatus: props.nextStatus
+  nuevo_abogado_id: '',
+  juicios: [] as number[],
+  motivo: '',
 })
 
-function submit() {
+// debug opcional
+console.log('candidatos:', props.candidatos)
+
+function submit () {
   form.post(route('abogados.reasignar.store', props.abogado.id))
 }
 </script>
 
 <template>
   <TopNavLayout></TopNavLayout>
-  <div class="p-6 space-y-4">
-    <div class="flex items-center justify-between">
-      <h1 class="text-xl font-semibold">Reasignar juicios de {{ abogado.nombre }}</h1>
-      <Link :href="route('abogados.index')" class="px-3 py-1.5 rounded border">Volver</Link>
+  <div class="space-y-6">
+    <h1 class="text-xl font-semibold">
+      Reasignar juicios de: {{ abogado.nombre }}
+    </h1>
+
+    <!-- Nuevo abogado -->
+    <div>
+      <label class="block text-sm font-medium">Nuevo abogado</label>
+      <select v-model="form.nuevo_abogado_id" class="border rounded px-3 py-2 w-full">
+        <option value="">Seleccione…</option>
+        <option v-for="a in candidatos" :key="a.id" :value="a.id">
+          {{ a.nombre }}
+        </option>
+      </select>
+      <p v-if="form.errors.nuevo_abogado_id" class="text-red-600 text-sm mt-1">
+        {{ form.errors.nuevo_abogado_id }}
+      </p>
     </div>
 
-    <p class="text-gray-600">
-      Estás cambiando el estatus a <strong>{{ nextStatus }}</strong>. Reasigna cada juicio a un abogado activo o déjalo sin asignar.
-    </p>
-
-    <div class="overflow-auto border rounded">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="text-left px-3 py-2">Juicio</th>
-            <th class="text-left px-3 py-2">Cliente</th>
-            <th class="text-left px-3 py-2">Fecha inicio</th>
-            <th class="text-left px-3 py-2">Nuevo abogado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(j, idx) in juicios" :key="j.id" class="border-t">
-            <td class="px-3 py-2">{{ j.nombre }}</td>
-            <td class="px-3 py-2">{{ j.cliente?.nombre ?? '—' }}</td>
-            <td class="px-3 py-2">{{ j.fecha_inicio ?? '—' }}</td>
-            <td class="px-3 py-2">
-              <select v-model="form.reasignaciones[idx].nuevo_abogado_id" class="border rounded px-2 py-1">
-                <option :value="null">— Sin abogado —</option>
-                <option v-for="ab in abogadosActivos" :key="ab.id" :value="ab.id">
-                  {{ ab.nombre }}
-                </option>
-              </select>
-            </td>
-          </tr>
-          <tr v-if="juicios.length === 0">
-            <td colspan="4" class="px-3 py-6 text-center text-gray-500">No hay juicios por reasignar.</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Juicios -->
+    <div>
+      <label class="block text-sm font-medium">Juicios a reasignar</label>
+      <div class="mt-2 grid gap-2">
+        <label v-for="j in juicios" :key="j.id" class="flex items-center gap-2">
+          <input type="checkbox" :value="j.id" v-model="form.juicios" />
+          <span>#{{ j.id }} – {{ j.nombre }}</span>
+        </label>
+      </div>
+      <p v-if="form.errors.juicios" class="text-red-600 text-sm mt-1">
+        {{ form.errors.juicios }}
+      </p>
     </div>
 
-    <div class="flex justify-end">
-      <button class="px-4 py-2 rounded bg-blue-600 text-white" :disabled="form.processing" @click="submit">
-        {{ form.processing ? 'Guardando…' : 'Confirmar y actualizar' }}
+    <!-- Motivo -->
+    <div>
+      <label class="block text-sm font-medium">Motivo</label>
+      <textarea v-model="form.motivo" class="border rounded px-3 py-2 w-full" rows="2"></textarea>
+      <p v-if="form.errors.motivo" class="text-red-600 text-sm mt-1">
+        {{ form.errors.motivo }}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        @click="submit"
+        class="px-4 py-2 rounded bg-indigo-600 text-white"
+        :disabled="form.processing"
+      >
+        Reasignar
       </button>
+
+      <Link :href="route('abogados.index')" class="px-4 py-2 rounded bg-gray-200">
+        Cancelar
+      </Link>
     </div>
   </div>
 </template>

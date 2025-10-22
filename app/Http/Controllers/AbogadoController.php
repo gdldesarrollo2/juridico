@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Abogado;
+use App\Models\Juicio;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;  // 👈 agrega esto
+use App\Models\JuicioAbogadoHistorial;
+use Carbon\Carbon;
 
 class AbogadoController extends Controller
 {
@@ -112,4 +116,83 @@ class AbogadoController extends Controller
         return redirect()->route('abogados.index')
             ->with('success', 'Abogado actualizado correctamente.');
     }
+  public function reasignarStore(Request $request, Abogado $abogado)
+{
+    $data = $request->validate([
+        'nuevo_abogado_id' => ['required','integer','exists:abogados,id'],
+        'juicios'          => ['required','array','min:1'],
+        'juicios.*'        => ['integer','exists:juicios,id'],
+        'motivo'           => ['nullable','string','max:255'],
+    ]);
+
+    if ((int)$data['nuevo_abogado_id'] === (int)$abogado->id) {
+        return back()->withErrors(['nuevo_abogado_id' => 'El nuevo abogado no puede ser el mismo.']);
+    }
+
+    $nuevo = Abogado::findOrFail($data['nuevo_abogado_id']);
+    $motivo = $data['motivo'] ?? 'Reasignación de abogado';
+    $now    = Carbon::now();
+    $userId = auth()->id();
+
+    $juicios = Juicio::whereIn('id', $data['juicios'])
+        ->where('abogado_id', $abogado->id)
+        ->get();
+
+    if ($juicios->isEmpty()) {
+        return back()->withErrors(['juicios' => 'Los juicios seleccionados no pertenecen al abogado actual.']);
+    }
+
+    DB::transaction(function () use ($juicios, $abogado, $nuevo, $motivo, $now, $userId) {
+        foreach ($juicios as $j) {
+            JuicioAbogadoHistorial::where('juicio_id', $j->id)
+                ->where('abogado_id', $abogado->id)
+                ->whereNull('asignado_hasta')
+                ->update([
+                    'asignado_hasta' => $now,
+                    'changed_by'     => $userId,
+                    'motivo'         => 'Cierre por reasignación',
+                    'updated_at'     => $now,
+                ]);
+
+            $j->update(['abogado_id' => $nuevo->id]);
+
+            JuicioAbogadoHistorial::create([
+                'juicio_id'       => $j->id,
+                'abogado_id'      => $nuevo->id,
+                'usuario_id'      => $nuevo->usuario_id ?? null,
+                'asignado_desde'  => $now,
+                'asignado_hasta'  => null,
+                'changed_by'      => $userId,
+                'motivo'          => $motivo,
+                'created_at'      => $now,
+                'updated_at'      => $now,
+            ]);
+        }
+    });
+
+    return redirect()->route('abogados.index')
+        ->with('success', "Se reasignaron {$juicios->count()} juicio(s).");
+}
+
+public function reasignarForm(Abogado $abogado)
+{
+    // Juicios del abogado actual
+    $juicios = Juicio::where('abogado_id', $abogado->id)
+        ->orderBy('id')
+        ->get(['id','nombre']);
+
+    // Candidatos = otros abogados activos (distintos al actual)
+    $candidatos = Abogado::query()
+        ->where('estatus', 'activo')          // <- ajusta si tus valores son otros
+        ->where('id', '!=', $abogado->id)
+        ->orderBy('nombre')
+        ->get(['id','nombre']);
+
+    return Inertia::render('Abogados/Reasignar', [
+        'abogado'    => $abogado->only('id','nombre'),
+        'juicios'    => $juicios,
+        'candidatos' => $candidatos,
+    ]);
+}
+
 }

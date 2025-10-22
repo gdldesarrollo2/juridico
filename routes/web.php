@@ -40,10 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role_or_permission:admin|abogado|ver juicios,web')
         ->name('juicios.index');
 
-    Route::get('/juicios/{juicio}', [JuicioController::class, 'show'])
-        ->middleware('role_or_permission:admin|abogado|ver juicios,web')
-        ->name('juicios.show');
-
+    // --- ESTÁTICAS PRIMERO ---
     Route::get('/juicios/create', [JuicioController::class, 'create'])
         ->middleware('role_or_permission:admin|abogado|crear juicios,web')
         ->name('juicios.create');
@@ -53,14 +50,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('juicios.store');
 
     Route::get('/juicios/{juicio}/edit', [JuicioController::class, 'edit'])
+        ->whereNumber('juicio')
         ->middleware('role_or_permission:admin|abogado|editar juicios,web')
         ->name('juicios.edit');
 
     Route::put('/juicios/{juicio}', [JuicioController::class, 'update'])
+        ->whereNumber('juicio')
         ->middleware('role_or_permission:admin|abogado|editar juicios,web')
         ->name('juicios.update');
 
-    Route::prefix('juicios/{juicio}')->group(function () {
+    // --- RUTAS ANIDADAS ESPECÍFICAS ANTES DE SHOW ---
+    Route::prefix('juicios/{juicio}')->whereNumber('juicio')->group(function () {
         Route::get('etapas', [EtapaController::class, 'index'])
             ->middleware('role_or_permission:admin|abogado|ver juicios,web')
             ->name('juicios.etapas.index');
@@ -69,6 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('role_or_permission:admin|abogado|crear etapa de juicio,web')
             ->name('juicios.etapas.store');
     });
+
+    // --- DINÁMICA AL FINAL ---
+    Route::get('/juicios/{juicio}', [JuicioController::class, 'show'])
+        ->whereNumber('juicio')
+        ->middleware('role_or_permission:admin|abogado|ver juicios,web')
+        ->name('juicios.show');
 
     // ===================== Clientes =====================
     Route::prefix('clientes')->group(function () {
@@ -90,13 +96,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->only(['index','create','store','edit','update'])
         ->middleware('role_or_permission:admin|abogado|ver juicios,web');
 
-    Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarForm'])
-        ->middleware('role_or_permission:admin|abogado|editar juicios,web')
-        ->name('abogados.reasignar.form');
+   
 
-    Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
-        ->middleware('role_or_permission:admin|abogado|editar juicios,web')
-        ->name('abogados.reasignar.store');
 
     // ===================== Revisiones =====================
     Route::resource('revisiones', RevisionController::class)
@@ -104,15 +105,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->except(['show'])
         ->middleware('role_or_permission:admin|abogado|ver revisiones,web');
 
+    // Anidadas específicas ANTES de cualquier dinámica parecida
     Route::get('/revisiones/{revision}/etapas', [RevisionEtapaController::class, 'index'])
+        ->whereNumber('revision')
         ->middleware('role_or_permission:admin|abogado|ver revisiones,web')
         ->name('revisiones.etapas.index');
 
     Route::post('/revisiones/{revision}/etapas', [RevisionEtapaController::class, 'store'])
+        ->whereNumber('revision')
         ->middleware('role_or_permission:admin|abogado|crear revisiones,web')
         ->name('revisiones.etapas.store');
 
     Route::put('/revisiones/etapas/{etapa}', [RevisionEtapaController::class, 'update'])
+        ->whereNumber('etapa')
         ->middleware('role_or_permission:admin|abogado|editar revisiones,web')
         ->name('revisiones.etapas.update');
 
@@ -128,12 +133,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ===================== Seguridad (Roles & Permisos) =====================
     Route::middleware('role:admin')->prefix('seguridad')->group(function () {
         Route::get('roles',               [RoleController::class, 'index'])->name('roles.index');
-        Route::get('roles/{role}/edit',   [RoleController::class, 'edit'])->name('roles.edit');
-        Route::put('roles/{role}',        [RoleController::class, 'update'])->name('roles.update');
+        Route::get('roles/{role}/edit',   [RoleController::class, 'edit'])->whereNumber('role')->name('roles.edit');
+        Route::put('roles/{role}',        [RoleController::class, 'update'])->whereNumber('role')->name('roles.update');
 
         Route::get('usuarios',            [UserRoleController::class, 'index'])->name('users.roles.index');
-        Route::get('usuarios/{user}/rol', [UserRoleController::class, 'edit'])->name('users.roles.edit');
-        Route::put('usuarios/{user}/rol', [UserRoleController::class, 'update'])->name('users.roles.update');
+        Route::get('usuarios/{user}/rol', [UserRoleController::class, 'edit'])->whereNumber('user')->name('users.roles.edit');
+        Route::put('usuarios/{user}/rol', [UserRoleController::class, 'update'])->whereNumber('user')->name('users.roles.update');
     });
 });
 
@@ -141,6 +146,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+
+// GET para ver el formulario
+Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarForm'])
+    ->name('abogados.reasignar.form');
+
+// POST para guardar
+Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
+    ->name('abogados.reasignar.store');
 
 // Otros requires
 require __DIR__.'/settings.php';
