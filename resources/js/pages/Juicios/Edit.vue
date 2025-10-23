@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
 import FormJuicio from './components/FormJuicio.vue';
+import TopNavLayout from '@/layouts/TopNavLayout.vue';
 
 type Opcion = { id:number; nombre:string }
 
@@ -73,6 +74,7 @@ function submit() {
 </script>
 
 <template>
+  <TopNavLayout></TopNavLayout>
   <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Editar Juicio #{{ props.juicio.id }}</h1>

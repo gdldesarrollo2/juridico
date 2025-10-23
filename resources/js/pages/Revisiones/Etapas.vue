@@ -3,25 +3,34 @@ import TopNavLayout from '@/layouts/TopNavLayout.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { computed, watch } from 'vue'
 
+type Etapa = {
+  id?: number
+  etapa: string
+  nombre?: string
+  fecha_inicio: string
+  dias_vencimiento?: number|null
+  fecha_vencimiento?: string|null
+  abogado_id?: number|null
+  comentarios?: string|null
+  estatus: string
+}
+
 const props = defineProps<{
-  revision: { id:number, cliente:{id:number,nombre:string}, revision?:string }
-  etapas: Array<{
-    id:number, orden:number, nombre:string, fecha_inicio:string|null,
-    dias_vencimiento:number|null, vence:string|null, comentarios:string|null,
-    estatus:string, abogado?:{id:number,nombre:string}|null, usuario?:{id:number,name:string}|null
-  }>
-  abogados: Array<{id:number,nombre:string}>
-  sugeridas: Array<{orden:number,nombre:string}>
+  revision: any,
+  etapas: Etapa[],
+  etapasCatalogo: string[]   // 👈 NUEVO: viene desde el controlador
 }>()
 
-const form = useForm({
-  orden: 1,
-  nombre: props.sugeridas[0]?.nombre ?? '',
+// formulario de creación
+const form = useForm<Etapa>({
+  etapa: '',
+  nombre: '',
   fecha_inicio: '',
-  dias_vencimiento: 30,
+  dias_vencimiento: 0,
+  fecha_vencimiento: '',
+  abogado_id: null,
   comentarios: '',
-  estatus: 'pendiente',
-  abogado_id: '',
+  estatus: 'PENDIENTE',
 })
 
 const vencePreview = computed(() => {
@@ -62,20 +71,17 @@ watch(()=>form.orden,(n)=>{
       <!-- Formulario -->
       <form @submit.prevent="submit" class="grid md:grid-cols-2 gap-4 bg-indigo-50/40 p-4 rounded">
         <div>
-          <label class="block text-sm font-medium">Etapa (orden)</label>
-          <div class="flex gap-2">
-            <input v-model.number="form.orden" type="number" min="1"
-                   class="mt-1 w-24 border rounded px-3 py-2">
-            <input v-model="form.nombre" type="text" placeholder="Nombre de la etapa"
-                   class="mt-1 flex-1 border rounded px-3 py-2">
-          </div>
-          <div class="mt-1 text-xs text-gray-500">
-            Sugeridas:
-            <span v-for="s in props.sugeridas" :key="s.orden" class="mr-2">
-              <button type="button" class="underline"
-                      @click="form.orden=s.orden; form.nombre=s.nombre">{{ s.orden }}. {{ s.nombre }}</button>
-            </span>
-          </div>
+          <div class="space-y-1">
+  <label class="block text-sm font-medium">Etapa</label>
+  <select v-model="form.etapa" class="border rounded px-2 py-1 w-full">
+    <option value="" disabled>Seleccione…</option>
+    <option v-for="(e, idx) in props.etapasCatalogo" :key="idx" :value="e">
+      {{ e }}
+    </option>
+  </select>
+  <p v-if="form.errors.etapa" class="text-xs text-red-600">{{ form.errors.etapa }}</p>
+</div>
+
         </div>
 
         <div>

@@ -242,7 +242,7 @@ public function edit(Juicio $juicio)
     return redirect()->route('juicios.index')
         ->with('success', 'Juicio actualizado correctamente.');
 }
-public function show(\App\Models\Juicio $juicio)
+public function show(Juicio $juicio)
 {
     // Cargar info general
     $juicio->load([
@@ -259,7 +259,6 @@ public function show(\App\Models\Juicio $juicio)
     $etapas = $juicio->etapas()
         ->with([
             'etiqueta:id,nombre',
-            'usuario:id,name',
         ])
         ->get([
             'id','etiqueta_id','etapa','abogado_id','rol','comentarios',
@@ -270,7 +269,6 @@ public function show(\App\Models\Juicio $juicio)
     $historial = $juicio->abogadosHistorial()
         ->with([
             'abogado:id,nombre',
-            'usuario:id,name',
         ])
         ->get([
             'id','juicio_id','abogado_id','abogado_id',
