@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed,watch  } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
 
@@ -25,26 +25,35 @@ const props = defineProps<{
 }>()
 
 // === Formulario ===
-const today = new Date().toISOString().slice(0,10)
 const form = useForm({
-  tipo_revision: '' as 'gabinete' | 'domiciliaria' | 'electronica' | 'secuencial' | '',
-  catalogo_etapa_id: props.catalogoEtapas?.[0]?.id ?? null,
-  fecha_inicio: today,
-  dias_vencimiento: 30,
-  comentarios: '',
+  catalogo_etapa_id: null as number | null,
+  fecha_inicio: new Date().toISOString().slice(0,10),
+  dias_vencimiento: 30 as number | null,
+  fecha_vencimiento: null as string | null,   // <- clave: existe en el form
   estatus: 'PENDIENTE',
-  abogado_id: props.abogados?.[0]?.id ?? null,
-  nombre: '', // nuevo campo a capturar
+  comentarios: '',
+  abogado_id: null as number | null,
 })
 
-const fechaVencimiento = computed(() => {
-  if (!form.fecha_inicio) return ''
-  const base = new Date(form.fecha_inicio)
-  const out = new Date(base)
-  out.setDate(out.getDate() + Number(form.dias_vencimiento || 0))
-  return out.toISOString().slice(0,10)
-})
+// util simple para sumar días (sin reglas laborales)
+function addDays(iso: string, days: number) {
+  const d = new Date(iso)
+  d.setDate(d.getDate() + (Number.isFinite(days) ? days : 0))
+  return d.toISOString().slice(0,10)
+}
 
+// recalcular automáticamente
+watch(
+  () => [form.fecha_inicio, form.dias_vencimiento],
+  () => {
+    if (form.fecha_inicio && form.dias_vencimiento != null) {
+      form.fecha_vencimiento = addDays(form.fecha_inicio, Number(form.dias_vencimiento))
+    } else {
+      form.fecha_vencimiento = null
+    }
+  },
+  { immediate: true }
+)
 const postUrl = computed(() => {
   try { return route('revisiones.etapas.store', props.revision.id) }
   catch { return `/revisiones/${props.revision.id}/etapas` } // fallback si Ziggy no está
@@ -85,22 +94,17 @@ function fmtDMY(d?: string|null) {
     <!-- Form -->
     <div class="grid md:grid-cols-2 gap-4">
         <div>
-        <label class="block text-sm font-medium mb-1">Nombre</label>
-         <input
-     type="text"
-      v-model="form.nombre"
-      class="w-full rounded border border-slate-300"
-      placeholder="Escribe el nombre..."
-    />
-        <p v-if="form.errors.catalogo_etapa_id" class="text-red-600 text-sm mt-1">{{ form.errors.catalogo_etapa_id }}</p>
-      </div>
-      <div>
         <label class="block text-sm font-medium mb-1">Etapa</label>
-        <select v-model="form.catalogo_etapa_id" class="w-full rounded border border-slate-300">
-          <option v-for="e in props.catalogoEtapas" :key="e.id" :value="e.id">{{ e.nombre }}</option>
-        </select>
+      <select v-model.number="form.catalogo_etapa_id" class="w-full border rounded px-3 py-2">
+  <option value="" disabled>Selecciona la etapa…</option>
+  <option v-for="e in props.catalogoEtapas" :key="e.id" :value="e.id">
+    {{ e.nombre }}
+  </option>
+</select>
+
         <p v-if="form.errors.catalogo_etapa_id" class="text-red-600 text-sm mt-1">{{ form.errors.catalogo_etapa_id }}</p>
       </div>
+    
 
       <div>
         <label class="block text-sm font-medium mb-1">Fecha</label>
@@ -113,7 +117,7 @@ function fmtDMY(d?: string|null) {
         <div class="flex items-center gap-2">
           <input type="number" min="0" v-model.number="form.dias_vencimiento" class="w-24 rounded border border-slate-300" />
           <span class="text-sm">Días.</span>
-          <span class="text-sm px-2 py-1 rounded bg-slate-100">{{ fmtDMY(fechaVencimiento) }}</span>
+            <input v-model="form.fecha_vencimiento" type="date" class="..." />
         </div>
         <p v-if="form.errors.dias_vencimiento" class="text-red-600 text-sm mt-1">{{ form.errors.dias_vencimiento }}</p>
       </div>
@@ -155,6 +159,7 @@ function fmtDMY(d?: string|null) {
         <thead class="bg-gray-50">
           <tr>
             <th class="text-left px-3 py-2">Fecha inicio</th>
+            
             <th class="text-left px-3 py-2">Etapa</th>
             <th class="text-left px-3 py-2">Vencimiento</th>
             <th class="text-left px-3 py-2">Usuario captura</th>

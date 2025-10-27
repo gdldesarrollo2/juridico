@@ -42,7 +42,7 @@ const form = useForm({
   usuario_id: '',
   // 👇 aquí están los radios y el select dependiente
   tipo_revision: '' as '' | TipoRevision,
-  revision: '',
+  //revision: '',
   periodos: [] as Array<{ anio:number, meses:number[] }>,
   objeto: '',
   observaciones: '',
@@ -53,9 +53,9 @@ const form = useForm({
 })
 
 // lista dependiente de “revision”
-const opcionesRevision = computed(() => {
-  return form.tipo_revision ? (props.catalogoRevision[form.tipo_revision] ?? []) : []
-})
+// const opcionesRevision = computed(() => {
+//   return form.tipo_revision ? (props.catalogoRevision[form.tipo_revision] ?? []) : []
+// })
 
 // Estado para el picker de año nuevo
 const nuevoAnio = reactive<{ value: number | '' }>({ value: '' })
@@ -90,11 +90,11 @@ function mesesDe(anio:number) {
   return p ? p.meses : []
 }
 // si cambia el tipo, valida/reset la revisión elegida
-watch(() => form.tipo_revision, () => {
-  if (!opcionesRevision.value.includes(form.revision)) {
-    form.revision = opcionesRevision.value[0] ?? ''
-  }
-})
+// watch(() => form.tipo_revision, () => {
+//   if (!opcionesRevision.value.includes(form.revision)) {
+//     form.revision = opcionesRevision.value[0] ?? ''
+//   }
+// })
 
 function submit() {
   form.post(route('revisiones.store'))
@@ -135,14 +135,14 @@ function submit() {
       </div>
        <!-- Revisión dependiente del tipo -->
       <div>
-        <label class="block text-sm font-medium mb-1">Revisión</label>
+        <!-- <label class="block text-sm font-medium mb-1">Revisión</label>
         <select v-model="form.revision" :disabled="!form.tipo_revision" class="w-full border rounded px-3 py-2">
           <option v-if="!form.tipo_revision" value="">Primero elige el tipo…</option>
           <option v-for="(op, i) in opcionesRevision" :key="i" :value="op">
             {{ i + 1 }}. {{ op }}
           </option>
         </select>
-        <p v-if="form.errors.revision" class="text-red-600 text-xs mt-1">{{ form.errors.revision }}</p>
+        <p v-if="form.errors.revision" class="text-red-600 text-xs mt-1">{{ form.errors.revision }}</p> -->
       </div>
       <!-- Sociedad y Autoridad -->
       <div class="grid md:grid-cols-2 gap-4">

@@ -7,6 +7,7 @@ use App\Models\User;       // <-- si usas otro (Abogado), cámbialo
 use App\Models\Empresa;   // <-- “empresa”
 use App\Models\Autoridad;  // <-- catálogo de autoridades
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class RevisionController extends Controller
@@ -166,35 +167,20 @@ class RevisionController extends Controller
         $opciones = $this->opciones($vTipo['tipo_revision']);
 
         $validated = $request->validate([
-            'empresa_id'   => ['required','integer','exists:empresas,idempresa'], // map → idempresa
-            'usuario_id'    => ['nullable','integer','exists:users,id'],
-            'autoridad_id'  => ['nullable','integer','exists:autoridades,id'],
-            'revision'      => [
-                'required',
-                function ($attr, $val, $fail) use ($opciones) {
-                    if (!in_array($val, $opciones, true)) {
-                        $fail('La revisión seleccionada no es válida para el tipo.');
-                    }
-                },
-            ],
-            'periodos'              => ['required','array','min:1'],
-            'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
-            'periodos.*.meses'      => ['required','array','min:1'],
-            'periodos.*.meses.*'    => ['integer','between:1,12'],
-            'objeto'        => ['nullable','string','max:255'],
-            'observaciones' => ['nullable','string'],
-            'aspectos'      => ['nullable','string'],
-            'compulsas'     => ['nullable','string'],
-             'no_juicio' => ['nullable', 'alpha_num'],
-            'estatus'       => [
-                'required',
-                function ($attr, $val, $fail) {
-                    if (!in_array($val, ['en_juicio','concluido','cancelado'], true)) {
-                        $fail('Estatus inválido.');
-                    }
-                },
-            ],
-        ] + $vTipo);
+  'empresa_id'   => ['required','integer','exists:empresas,idempresa'],
+  'usuario_id'   => ['nullable','integer','exists:users,id'],
+  'autoridad_id' => ['nullable','integer','exists:autoridades,id'],
+  'periodos'              => ['required','array','min:1'],
+  'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
+  'periodos.*.meses'      => ['required','array','min:1'],
+  'periodos.*.meses.*'    => ['integer','between:1,12'],
+  'objeto'        => ['nullable','string','max:255'],
+  'observaciones' => ['nullable','string'],
+  'aspectos'      => ['nullable','string'],
+  'compulsas'     => ['nullable','string'],
+  'no_juicio'     => ['nullable','alpha_num'],
+  'estatus'       => ['required', Rule::in(['en_juicio','concluido','cancelado'])],
+]);
         $periodosMapa = [];
         foreach ($validated['periodos'] as $item) {
             $anio = (string)$item['anio'];
@@ -203,19 +189,19 @@ class RevisionController extends Controller
             $periodosMapa[$anio] = $meses;
         }
 
-        $data = [
-            'idempresa'     => $validated['empresa_id'],
-            'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
-            'autoridad_id'  => $validated['autoridad_id'] ?? null,
-            'revision'      => $validated['revision'],
-            'periodos' => $periodosMapa,
-            'objeto'        => $validated['objeto'] ?? null,
-            'observaciones' => $validated['observaciones'] ?? null,
-            'aspectos'      => $validated['aspectos'] ?? null,
-            'compulsas'     => $validated['compulsas'] ?? null,
-            'no_juicio'     => $validated['no_juicio'] ?? null,
-            'estatus'       => $validated['estatus'],
-        ] + $this->flags($validated['tipo_revision']);
+       $data = [
+  'idempresa'     => $validated['empresa_id'],
+  'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
+  'autoridad_id'  => $validated['autoridad_id'] ?? null,
+  // 'revision' fuera: ahora se define en las etapas
+  'periodos'      => $periodosMapa,
+  'objeto'        => $validated['objeto'] ?? null,
+  'observaciones' => $validated['observaciones'] ?? null,
+  'aspectos'      => $validated['aspectos'] ?? null,
+  'compulsas'     => $validated['compulsas'] ?? null,
+  'no_juicio'     => $validated['no_juicio'] ?? null,
+  'estatus'       => $validated['estatus'],
+] + $this->flags($vTipo['tipo_revision']);
 
         Revision::create($data);
 

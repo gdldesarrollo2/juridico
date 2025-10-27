@@ -80,89 +80,113 @@ class RevisionEtapaController extends Controller
             'En juicio de nulidad',
         ],
     ];
-    public function index(Revision $revision)
-    {
-        // catálogos (ajusta a tus tablas reales)
-        $catalogoEtapas = \DB::table('catalogo_etapas')
-            ->select('id','nombre')
-           ->get();
+  public function index(Revision $revision)
+{
+    // 1) Inferir el tipo de revisión desde los flags de la revisión
+    $tipo = match (true) {
+        (bool) $revision->rev_gabinete     => 'gabinete',
+        (bool) $revision->rev_domiciliaria => 'domiciliaria',
+        (bool) $revision->rev_electronica  => 'electronica',
+        (bool) $revision->rev_secuencial   => 'secuencial',
+        default => null,
+    };
 
-        $estatus = ['PENDIENTE','ATENDIDO','CANCELADO'];
+    // 2) Catálogo dependiente del tipo (usa el que ya tienes en este mismo controlador)
+    $lista = self::CATALOGO[$tipo] ?? [];
 
-        $abogados = Abogado::query()
-            ->select('id','nombre')
-            ->orderBy('nombre')
-            ->get();
+    // 3) Adaptar a {id, nombre} para el <select>
+    $catalogoEtapas = collect($lista)->values()->map(function ($nombre, $i) {
+        return ['id' => $i + 1, 'nombre' => $nombre];
+    });
 
-        // historial de etapas
-        $etapas = $revision->etapas()
-            ->with('usuarioCaptura:id,name')
-            ->orderByDesc('fecha_inicio')
-            ->get()
-            ->map(function ($e){
-                return [
-                    'id' => $e->id,
-                    'nombre' => $e->nombre, // NUEVO
-                    'etapa' => $e->catalogo_etapa_id, // el componente lo resolverá a nombre
-                    'fecha_inicio' => optional($e->fecha_inicio)->format('d/m/Y'),
-                    'fecha_vencimiento' => optional($e->fecha_vencimiento)->format('d/m/Y'),
-                    'estatus' => $e->estatus,
-                    'comentarios' => $e->comentarios,
-                    'usuario' => optional($e->usuarioCaptura)->name
-                ];
-            });
+    $estatus = ['PENDIENTE','ATENDIDO','CANCELADO'];
 
-        return Inertia::render('RevisionEtapas/CrearEtapa', [
-            'revision' => [
-                'id' => $revision->id,
-                'empresa' => $revision->empresa,
-            ],
-            'catalogoEtapas' => $catalogoEtapas,
-            'estatus' => $estatus,
-            'abogados' => $abogados,
-            'historial' => $etapas,
+    $abogados = Abogado::query()
+        ->select('id','nombre')
+        ->orderBy('nombre')
+        ->get();
+
+    // Historial (como ya lo tenías)
+    $etapas = $revision->etapas()
+        ->with('usuarioCaptura:id,name')
+        ->orderByDesc('fecha_inicio')
+        ->get()
+        ->map(fn ($e) => [
+            'id'                => $e->id,
+            'nombre'            => $e->nombre,
+            'etapa'             => $e->catalogo_etapa_id, // índice 1..n
+            'fecha_inicio'      => optional($e->fecha_inicio)->format('Y-m-d'),
+            'fecha_vencimiento' => optional($e->fecha_vencimiento)->format('Y-m-d'),
+            'estatus'           => $e->estatus,
+            'comentarios'       => $e->comentarios,
+            'usuario'           => optional($e->usuarioCaptura)->name,
         ]);
+
+    return Inertia::render('RevisionEtapas/CrearEtapa', [
+        'revision'       => [
+            'id'   => $revision->id,
+            'tipo' => $tipo,  // útil en el front
+            'empresa' => $revision->empresa, // si lo usas en el encabezado
+        ],
+        'catalogoEtapas' => $catalogoEtapas,
+        'estatus'        => $estatus,
+        'abogados'       => $abogados,
+        'historial'      => $etapas,
+    ]);
+}
+
+
+  public function store(Request $request, Revision $revision)
+{
+    // Inferir tipo desde la revisión (no dependas del front)
+    $tipo = match (true) {
+        (bool) $revision->rev_gabinete     => 'gabinete',
+        (bool) $revision->rev_domiciliaria => 'domiciliaria',
+        (bool) $revision->rev_electronica  => 'electronica',
+        (bool) $revision->rev_secuencial   => 'secuencial',
+        default => null,
+    };
+
+    $opciones = self::CATALOGO[$tipo] ?? [];
+    $max = count($opciones);
+
+   
+    $data = $request->validate([
+        'catalogo_etapa_id'  => ['required','integer','between:1,'.$max],
+        'fecha_inicio'       => ['required','date'],
+        'dias_vencimiento'   => ['nullable','integer','min:0'],
+        'fecha_vencimiento'  => ['nullable','date'],
+        'estatus'            => ['required', Rule::in(['PENDIENTE','ATENDIDO','CANCELADO'])],
+        'comentarios'        => ['nullable','string','max:2000'],
+        'abogado_id'         => ['nullable','integer','exists:abogados,id'],
+    ]);
+
+    // Si no viene, la calculamos
+    if (empty($data['fecha_vencimiento']) && isset($data['dias_vencimiento'])) {
+        $fi = Carbon::parse($data['fecha_inicio'])->startOfDay();
+        $fv = (clone $fi)->addDays((int) $data['dias_vencimiento']);
+        $data['fecha_vencimiento'] = $fv->toDateString();
     }
 
-    public function store(Request $request, Revision $revision)
-    {
-        $tipos = ['gabinete','domiciliaria','electronica','secuencial'];
+    $nombre = $opciones[$data['catalogo_etapa_id'] - 1] ?? null;
 
-    // 1) Tipo
-        $vTipo = $request->validate([
-            'tipo_revision' => ['required', Rule::in($tipos)],
-        ]);
+    RevisionEtapa::create([
+        'revision_id'        => $revision->id,
+        'nombre'             => $nombre,
+        'catalogo_etapa_id'  => $data['catalogo_etapa_id'],
+        'fecha_inicio'       => $data['fecha_inicio'],
+        'dias_vencimiento'   => $data['dias_vencimiento'] ?? null,
+        'fecha_vencimiento'  => $data['fecha_vencimiento'] ?? null, // <- se guarda
+        'estatus'            => $data['estatus'],
+        'comentarios'        => $data['comentarios'] ?? null,
+        'abogado_id'         => $data['abogado_id'] ?? null,
+        'usuario_captura_id' => auth()->id(),
+    ]);
 
-    // 2) Opciones dependientes
-        $opciones = self::CATALOGO[$vTipo['tipo_revision']] ?? [];
-        $data = $request->validate([
-            'nombre'             => ['required','string','max:255'], // NUEVO
-            'catalogo_etapa_id'  => ['required','integer','exists:catalogo_etapas,id'],
-            'fecha_inicio'       => ['required','date'],
-            'dias_vencimiento'   => ['required','integer','min:0','max:3650'],
-            'comentarios'        => ['nullable','string','max:2000'],
-            'estatus'            => ['required', Rule::in(['PENDIENTE','ATENDIDO','CANCELADO'])],
-            'abogado_id'         => ['nullable','integer','exists:users,id'],
-        ]);
+    return back()->with('success','Etapa creada.');
 
-        $inicio = Carbon::parse($data['fecha_inicio']);
-        $vence  = (clone $inicio)->addDays($data['dias_vencimiento']);
+}
 
-        RevisionEtapa::create([
-            'revision_id'         => $revision->id,
-            'nombre'              => $data['nombre'] ?? null, // NUEVO
-            'catalogo_etapa_id'   => $data['catalogo_etapa_id'],
-            'fecha_inicio'        => $inicio,
-            'dias_vencimiento'    => $data['dias_vencimiento'],
-            'fecha_vencimiento'   => $vence,
-            'comentarios'         => $data['comentarios'] ?? null,
-            'estatus'             => $data['estatus'],
-            'abogado_id'          => $data['abogado_id'] ?? null,
-            'usuario_captura_id'  => $request->user()->id,
-        ]);
-
-        return back()->with('success','Etapa registrada');
-    }
 
     public function update(Request $request, RevisionEtapa $etapa)
     {
