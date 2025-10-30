@@ -1,112 +1,186 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { reactive, watch, computed } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
+import debounce from 'lodash/debounce'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
-type Auth = {
-  user?: { id:number; name:string; email?:string } | null
-  roles?: string[]
-  can?: string[]
+
+type Opcion = { value: string; label: string }
+type OptIdNombre = { id: number; nombre: string }
+type OptIdName = { id: number; name: string }
+
+type Row = {
+  id: number
+  tipo: string
+  sociedad: string | null
+  sociedad_id: number | null
+  autoridad: string | null
+  autoridad_id: number | null
+  periodo: string | null
+  estatus: string
+  empresa_compulsada?: string | null
+  observaciones?: string | null
+  usuario?: string | null
+  usuario_id?: number | null
+  nombre?: string | null // nombre de la última etapa (si lo mandas)
+  ultima_etapa: string | null
 }
+
 const props = defineProps<{
   auth?: Auth,                     // 👈 llega desde HandleInertiaRequests.share
-  revisiones: {
-    data: Array<{
-      id: number
-      idempresa?: number|null
-      empresa?: { id:number, razonsocial:string } | null
-      autoridad?: { id:number, nombre:string } | null
-      revision: string
-      periodo_etiqueta?: string|null
-      rev_gabinete?: boolean
-      rev_domiciliaria?: boolean
-      rev_electronica?: boolean
-      rev_secuencial?: boolean
-      estatus: string
-    }>
-    links: Array<{ url:string|null, label:string, active:boolean }>
+  revisiones: { data: Row[]; links: any[] }
+  filters: { tipo?: string; sociedad_id?: string | number; usuario_id?: string | number; autoridad_id?: string | number; estatus?: string; q?: string }
+  options: {
+    tipos: Opcion[]
+    sociedades: OptIdNombre[]
+    autoridades: OptIdNombre[]
+    usuarios: OptIdName[]
+    estatus: Opcion[]
   }
 }>()
 
-onMounted(() => {
-  //console.log('REVISIONS', props.revisiones.data)
+// --- permisos sin $can global ---
+
+
+// --- estado de filtros (reactivo) ---
+const f = reactive({
+  tipo: props.filters.tipo ?? '',
+  sociedad_id: props.filters.sociedad_id ? String(props.filters.sociedad_id) : '',
+  usuario_id: props.filters.usuario_id ? String(props.filters.usuario_id) : '',
+  autoridad_id: props.filters.autoridad_id ? String(props.filters.autoridad_id) : '',
+  estatus: props.filters.estatus ?? '',
+  q: props.filters.q ?? '',
 })
+
+function cleanParams() {
+  const p: Record<string, string> = {}
+  if (f.tipo) p.tipo = f.tipo
+  if (f.sociedad_id) p.sociedad_id = f.sociedad_id
+  if (f.usuario_id) p.usuario_id = f.usuario_id
+  if (f.autoridad_id) p.autoridad_id = f.autoridad_id
+  if (f.estatus) p.estatus = f.estatus
+  if (f.q) p.q = f.q
+  return p
+}
+
+function push() {
+  router.get(route('revisiones.index'), cleanParams(), {
+    preserveState: true,
+    replace: true,
+    only: ['revisiones', 'filters'],
+  })
+}
+
+watch(() => [f.tipo, f.sociedad_id, f.usuario_id, f.autoridad_id, f.estatus], push)
+const debouncedSearch = debounce(push, 400)
+watch(() => f.q, debouncedSearch)
+
+function resetFilters() {
+  f.tipo = ''
+  f.sociedad_id = ''
+  f.usuario_id = ''
+  f.autoridad_id = ''
+  f.estatus = ''
+  f.q = ''
+  router.get(route('revisiones.index'), {}, { preserveState: true, replace: true, only: ['revisiones', 'filters'] })
+}
+// Permisos robustos (sin $can global)
+type CanShape = string[] | Record<string, boolean> | undefined
+
+function can(perm: string): boolean {
+  // usePage() puede no tener props en el primer tick → protege todo con optional chaining
+  const pg: any = usePage()                       // no tipar agresivo aquí
+  const c: CanShape = pg?.props?.value?.auth?.can // puede ser array u objeto… o nada
+
+  if (Array.isArray(c)) return c.includes(perm)
+  if (c && typeof c === 'object') return Boolean((c as Record<string, boolean>)[perm])
+  return false // si aún no hay props, mejor esconder
+}
 const canList = computed<string[]>(() => props.auth?.can ?? [])
 const $can = (perm: string) => canList.value.includes(perm)
-const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '—'
 </script>
 
 <template>
- <TopNavLayout></TopNavLayout>
- <Link v-if="$can('crear revisiones')" 
-        :href="route('revisiones.create')"
-        class="rounded-md bg-indigo-600 py-1.5 px-3 border border-transparent text-center text-sm text-white transition-all shadow-sm hover:shadow focus:bg-indigo-700 focus:shadow-none active:bg-indigo-700 hover:bg-indigo-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
-      >
-        <span class="text-lg">＋</span>
-        Nueva revisión
-      </Link>
+  <TopNavLayout></TopNavLayout>
+  <br><br>
+  <div class="mb-4 grid grid-cols-1 md:grid-cols-6 gap-3">
+    <select v-model="f.tipo" class="border rounded px-2 py-1">
+      <option value="">Tipo…</option>
+      <option v-for="t in options.tipos" :key="t.value" :value="t.value">{{ t.label }}</option>
+    </select>
+
+    <select v-model="f.sociedad_id" class="border rounded px-2 py-1">
+      <option value="">Sociedad…</option>
+      <option v-for="s in options.sociedades" :key="s.id" :value="String(s.id)">{{ s.nombre }}</option>
+    </select>
+
+    <select v-model="f.autoridad_id" class="border rounded px-2 py-1">
+      <option value="">Autoridad…</option>
+      <option v-for="a in options.autoridades" :key="a.id" :value="String(a.id)">{{ a.nombre }}</option>
+    </select>
+
+    <select v-model="f.usuario_id" class="border rounded px-2 py-1">
+      <option value="">Usuario captura…</option>
+      <option v-for="u in options.usuarios" :key="u.id" :value="String(u.id)">{{ u.name }}</option>
+    </select>
+
+    <select v-model="f.estatus" class="border rounded px-2 py-1">
+      <option value="">Estatus…</option>
+      <option v-for="e in options.estatus" :key="e.value" :value="e.value">{{ e.label }}</option>
+    </select>
+
+    <input v-model="f.q" type="search" placeholder="Buscar en observaciones…" class="border rounded px-3 py-1" />
+  </div>
+
+  <div class="mb-3">
+    <button @click="resetFilters" class="text-sm text-gray-600 hover:underline">Limpiar filtros</button>
+  </div>
+
+  <table class="min-w-full text-sm">
+    <thead>
+      <tr class="text-left border-b">
+        <th class="py-2 pr-3">Tipo</th>
+        <th class="py-2 pr-3">Sociedad</th>
+        <th class="py-2 pr-3">Autoridad</th>
+        <th class="py-2 pr-3">Periodo</th>
+        <th class="py-2 pr-3">Estatus</th>
+        <th class="py-2 pr-3">Empresa compulsada</th>
+        <th class="py-2 pr-3">Observaciones</th>
+        <th class="py-2 pr-3">Ultima etapa</th>
+        <th class="py-2 pr-3">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="rev in revisiones.data" :key="rev.id" class="border-b">
+        <td class="py-2 pr-3">{{ rev.tipo }}</td>
+        <td class="py-2 pr-3">{{ rev.sociedad || '—' }}</td>
+        <td class="py-2 pr-3">{{ rev.autoridad || '—' }}</td>
+        <td class="py-2 pr-3">{{ rev.periodo || '—' }}</td>
+        <td class="py-2 pr-3">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{{ rev.estatus }}</span>
+        </td>
+        <td class="py-2 pr-3">{{ rev.empresa_compulsada || '—' }}</td>
+        <td class="py-2 pr-3">{{ rev.observaciones || '—' }}</td>
+        <td class="py-2 pr-3">
+  <div v-if="rev.ultima_etapa">
+    <div class="font-medium">{{ rev.ultima_etapa.nombre }}</div>
+    <div class="text-xs text-gray-500">
+      {{ rev.ultima_etapa.fecha_inicio || 'sin fecha' }}
+      <span v-if="rev.ultima_etapa.fecha_vencimiento"> · vence: {{ rev.ultima_etapa.fecha_vencimiento }}</span>
+    </div>
+    <span
+      v-if="rev.ultima_etapa.estatus"
+      class="mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700"
+    >
+      {{ rev.ultima_etapa.estatus.toLowerCase() }}
+    </span>
+  </div>
+  <span v-else>—</span>
+</td>
+        <td class="py-2 pr-3 space-x-2">
+          <!-- Etapas: parámetro posicional; protege si no hay id -->
       
-  <div class="bg-white rounded shadow overflow-x-auto">
-    <br>
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="text-left px-4 py-2">Tipo</th>
-          <th class="text-left px-4 py-2">Sociedad</th>
-          <th class="text-left px-4 py-2">Autoridad</th>
-          <th class="text-left px-4 py-2">Nombre</th>
-          <th class="text-left px-4 py-2">Periodo</th>
-          <th class="text-left px-4 py-2">Estatus</th>
-          <th class="text-right px-4 py-2">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="rev in props.revisiones.data" :key="rev.id" class="border-t">
-          <!-- Tipo (primer flag que esté en true) -->
-          <td class="px-4 py-2">
-            <span v-if="rev.rev_gabinete">Gabinete</span>
-            <span v-else-if="rev.rev_domiciliaria">Domiciliaria</span>
-            <span v-else-if="rev.rev_electronica">Electrónica</span>
-            <span v-else-if="rev.rev_secuencial">Secuencial</span>
-            <span v-else>—</span>
-          </td>
 
-          <!-- Sociedad -->
-          <td class="px-4 py-2">
-            {{ rev.empresa?.razonsocial ?? '—' }}
-          </td>
-
-          <!-- Autoridad -->
-          <td class="px-4 py-2">
-            {{ rev.autoridad?.nombre ?? '—' }}
-          </td>
-           <td class="px-4 py-2">
-            {{ rev.revision ?? '—' }}
-          </td>
-
-          <!-- Periodo -->
-          <td class="px-4 py-2">
-            {{ rev.periodo_etiqueta ?? '— —' }}
-          </td>
-
-          <!-- Estatus -->
-          <td class="px-4 py-2">
-            <span class="px-2 py-0.5 rounded text-xs"
-              :class="{
-                'bg-indigo-100 border border-indigo-300': rev.estatus==='en_juicio',
-                'bg-yellow-100 border border-yellow-300': rev.estatus==='pendiente',
-                'bg-blue-100 border border-blue-300': rev.estatus==='en_proceso',
-                'bg-green-100 border border-green-300': rev.estatus==='autorizado',
-                'bg-gray-200 border border-gray-300': rev.estatus==='concluido',
-              }"
-            >
-              {{ rev.estatus }}
-            </span>
-          </td>
-
-          <td class="px-4 py-2 text-right space-x-2">
-              <!-- Etapas -->
- <!-- Etapas -->
-  <Link
+           <Link
     :href="route('revisiones.etapas.index', { revision: rev.id })"
     class="inline-flex items-center px-3 py-1.5 rounded border text-indigo-700 border-indigo-300 hover:bg-indigo-50"
   >
@@ -114,13 +188,10 @@ const fmt = (d?: string|null) => d ? new Date(d).toLocaleDateString('es-MX') : '
   </Link>
             <Link v-if="$can('editar revisiones')"  :href="route('revisiones.edit', rev.id)" class="text-blue-600 hover:underline">Editar</Link>
             <Link v-if="$can('eliminar revisiones')"  as="button" method="delete" :href="route('revisiones.destroy', rev.id)" class="text-red-600 hover:underline">Eliminar</Link>
-          </td>
-        </tr>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-        <tr v-if="props.revisiones.data.length === 0">
-          <td colspan="6" class="px-4 py-6 text-center text-gray-500">Sin resultados</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- Tu paginación si ya la tienes, usa revisiones.links -->
 </template>

@@ -9,7 +9,8 @@ use App\Models\Autoridad;  // <-- catálogo de autoridades
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 class RevisionController extends Controller
 {
     /**
@@ -110,25 +111,87 @@ class RevisionController extends Controller
     }
 
     /** Listado simple */
-    public function index(Request $request)
-    {
-        $revisiones = Revision::query()
+  public function index()
+{
+    // filtros desde la query string
+    $filters = request()->only([
+        'tipo', 'sociedad_id', 'usuario_id', 'autoridad_id', 'estatus', 'q'
+    ]);
+
+    $query = Revision::query()
         ->with([
             'empresa:idempresa,razonsocial',
             'autoridad:id,nombre',
+            'usuario:id,name',
+            'ultimaEtapa:id,revision_id,nombre,fecha_inicio,fecha_vencimiento,estatus',
         ])
-        ->orderByDesc('id')
-        ->paginate(10)
-        ->withQueryString();
+        ->filter($filters)
+        ->orderByDesc('id');
+    $paginator = $query->paginate(20)->withQueryString();
 
-    // añade el accesor 'periodo_etiqueta' a cada modelo de la página actual
-    $revisiones->getCollection()->each->append('periodo_etiqueta');
+// Si quieres transformar, puedes usar through como ya lo tenías:
+$paginator = $paginator->through(function ($r) {
+    return [
+        'id'         => $r->id,
+        'tipo'       => $r->tipo_revision_legible,   // <- aquí
+        'sociedad'   => $r->empresa?->razonsocial,
+        'sociedad_id'=> $r->idempresa,
+        'autoridad'  => $r->autoridad?->nombre,
+        'autoridad_id'=> $r->autoridad_id,
+        'periodo'    => $r->periodo_etiqueta,         // <- y aquí
+        'estatus'    => $r->estatus,
+        'empresa_compulsada' => $r->compulsas,
+        'observaciones'      => $r->observaciones,
+        'usuario'    => $r->usuario?->name,
+        'usuario_id' => $r->usuario_id,
+         'ultima_etapa' => $r->ultimaEtapa ? [
+            'nombre'            => $r->ultimaEtapa->nombre,
+            'fecha_inicio'      => optional($r->ultimaEtapa->fecha_inicio)->toDateString(),
+            'fecha_vencimiento' => optional($r->ultimaEtapa->fecha_vencimiento)->toDateString(),
+            'estatus'           => $r->ultimaEtapa->estatus,
+        ] : null,
+    ];
+});
+
+    // opciones para selects
+    $tipos = [
+        ['value' => 'gabinete',    'label' => 'Gabinete'],
+        ['value' => 'domiciliaria','label' => 'Domiciliaria'],
+        ['value' => 'electronica', 'label' => 'Electrónica'],
+        ['value' => 'secuencial',  'label' => 'Secuencial'],
+    ];
+
+    $sociedades = Empresa::orderBy('razonsocial')
+        ->get(['idempresa as id','razonsocial as nombre']);
+
+    $autoridades = Autoridad::orderBy('nombre')
+        ->get(['id','nombre']);
+
+    $usuarios = User::orderBy('name')
+        ->get(['id','name']);
+
+    $estatus = [
+        ['value' => 'en_juicio', 'label' => 'en juicio'],
+        ['value' => 'concluido', 'label' => 'concluido'],
+        ['value' => 'cancelado', 'label' => 'cancelado'],
+    ];
 
     return Inertia::render('Revisiones/Index', [
-        'revisiones' => $revisiones,
+       'revisiones' => [
+        'data'  => array_values($paginator->items()), // <<— array real
+        'links' => $paginator->linkCollection(),
+        // si necesitas meta, puedes enviarla aparte
+    ],
+    'filters' => $filters,
+        'options' => [
+            'tipos'       => $tipos,
+            'sociedades'  => $sociedades,
+            'autoridades' => $autoridades,
+            'usuarios'    => $usuarios,
+            'estatus'     => $estatus,
+        ],
     ]);
-    }
-
+}
     /** Form de creación */
     public function create()
     {
@@ -167,7 +230,7 @@ class RevisionController extends Controller
         $opciones = $this->opciones($vTipo['tipo_revision']);
 
         $validated = $request->validate([
-  'empresa_id'   => ['required','integer','exists:empresas,idempresa'],
+  'idempresa'   => ['required','integer','exists:empresas,idempresa'],
   'usuario_id'   => ['nullable','integer','exists:users,id'],
   'autoridad_id' => ['nullable','integer','exists:autoridades,id'],
   'periodos'              => ['required','array','min:1'],
@@ -244,72 +307,128 @@ class RevisionController extends Controller
     ]);
 }
 
-    /** Actualiza */
-    public function update(Request $request, Revision $revision)
-    {
-        $tipos = ['gabinete','domiciliaria','electronica','secuencial'];
 
-        $vTipo = $request->validate([
-            'tipo_revision' => [
-                'required',
-                function ($attr, $val, $fail) use ($tipos) {
-                    if (!in_array($val, $tipos, true)) {
-                        $fail('Tipo de revisión inválido.');
-                    }
-                },
-            ],
+    /** Actualiza */
+public function update(Request $request, Revision $revision)
+{
+    // 1) Validación
+    $data = $request->validate([
+        'idempresa'       => ['required','integer','exists:empresas,idempresa'],
+        'autoridad_id'    => ['nullable','integer','exists:autoridades,id'],
+        'usuario_id'      => ['nullable','integer','exists:users,id'],
+
+        'rev_gabinete'     => ['sometimes','boolean'],
+        'rev_domiciliaria' => ['sometimes','boolean'],
+        'rev_electronica'  => ['sometimes','boolean'],
+        'rev_secuencial'   => ['sometimes','boolean'],
+
+        'no_juicio'      => ['nullable','string','max:100'],
+        'objeto'         => ['nullable','string','max:255'],
+        'observaciones'  => ['nullable','string','max:2000'],
+        'aspectos'       => ['nullable','string','max:2000'],
+        'compulsas'      => ['nullable','string','max:2000'],
+
+        'estatus'        => ['required', Rule::in(['en_juicio','concluido','cancelado'])],
+
+        // periodos puede venir como:
+        //  a) objeto: {"2022":[1,6,7], "2025":[1,2]}
+        //  b) arreglo: [{ anio: 2022, meses:[1,6,7] }, ...]
+        'periodos'       => ['nullable', 'array'],
+    ]);
+
+    // 2) Normalizar periodos (valida meses y años; quita duplicados)
+    $periodos = $this->normalizePeriodos($request->input('periodos'));
+
+    // 3) Persistencia
+    DB::transaction(function () use ($revision, $data, $periodos) {
+        $revision->fill([
+            'idempresa'        => $data['idempresa'],
+            'autoridad_id'     => $data['autoridad_id']   ?? null,
+            'usuario_id'       => $data['usuario_id']     ?? null,
+
+            'rev_gabinete'     => (bool) Arr::get($data, 'rev_gabinete', $revision->rev_gabinete),
+            'rev_domiciliaria' => (bool) Arr::get($data, 'rev_domiciliaria', $revision->rev_domiciliaria),
+            'rev_electronica'  => (bool) Arr::get($data, 'rev_electronica',  $revision->rev_electronica),
+            'rev_secuencial'   => (bool) Arr::get($data, 'rev_secuencial',   $revision->rev_secuencial),
+
+            'no_juicio'        => $data['no_juicio']       ?? null,
+            'objeto'           => $data['objeto']          ?? null,
+            'observaciones'    => $data['observaciones']   ?? null,
+            'aspectos'         => $data['aspectos']        ?? null,
+            'compulsas'        => $data['compulsas']       ?? null,
+
+            'estatus'          => $data['estatus'],
         ]);
 
-        $opciones = $this->opciones($vTipo['tipo_revision']);
+        if (!is_null($periodos)) {
+            // guarda como JSON consistente (Eloquent cast array → json)
+            $revision->periodos = $periodos;
+        }
 
-        $validated = $request->validate([
-            'empresa_id'   => ['required','integer','exists:empresas,idempresa'],
-            'usuario_id'    => ['nullable','integer','exists:users,id'],
-            'autoridad_id'  => ['nullable','integer','exists:autoridades,id'],
-            'revision'      => [
-                'required',
-                function ($attr, $val, $fail) use ($opciones) {
-                    if (!in_array($val, $opciones, true)) {
-                        $fail('La revisión seleccionada no es válida para el tipo.');
-                    }
-                },
-            ],
-         'periodos' => 'array',
-        'periodos.*.anio' => 'required|integer',
-        'periodos.*.meses' => 'array',
-        'periodos.*.meses.*' => 'integer|min:1|max:12',
-            'objeto'        => ['nullable','string','max:255'],
-            'observaciones' => ['nullable','string'],
-            'aspectos'      => ['nullable','string'],
-            'compulsas'     => ['nullable','string'],
-            'estatus'       => [
-                'required',
-                function ($attr, $val, $fail) {
-                    if (!in_array($val, ['en_juicio','concluido','cancelado'], true)) {
-                        $fail('Estatus inválido.');
-                    }
-                },
-            ],
-        ] + $vTipo);
-        $periodos = collect($validated['periodos'] ?? [])
-    ->mapWithKeys(fn($p) => [$p['anio'] => $p['meses']])
-    ->toArray();
-        $revision->update([
-            'idempresa'     => $validated['empresa_id'],
-            'usuario_id'    => $validated['usuario_id'] ?? auth()->id(),
-            'autoridad_id'  => $validated['autoridad_id'] ?? null,
-            'revision'      => $validated['revision'],
-            'periodos' => $periodos ?? null,
-            'objeto'        => $validated['objeto'] ?? null,
-            'observaciones' => $validated['observaciones'] ?? null,
-            'aspectos'      => $validated['aspectos'] ?? null,
-            'compulsas'     => $validated['compulsas'] ?? null,
-            'no_juicio'     => $validated['no_juicio'] ?? null,
-            'estatus'       => $validated['estatus'],
-        ] + $this->flags($validated['tipo_revision']));
+        $revision->save();
+    });
 
-        return redirect()->route('revisiones.index')->with('success', 'Revisión actualizada.');
+    return back()->with('success', 'Revisión actualizada correctamente.');
+}
+
+/**
+ * Normaliza el input de periodos a un array asociativo
+ *   ej: ["2022" => [1,6,7], "2025" => [1,2,3]]
+ * Acepta:
+ *   - objeto: {"2022":[1,6,7], "2025":[1,2]}
+ *   - arreglo: [{anio:2022, meses:[1,6,7]}, ...]
+ * Devuelve null si no se envió nada.
+ */
+private function normalizePeriodos($input): ?array
+{
+    if ($input === null) {
+        return null;
     }
+
+    $out = [];
+
+    // Caso objeto { "2022":[1,6], "2025":[1,2] }
+    if (is_array($input) && Arr::isAssoc($input)) {
+        foreach ($input as $anio => $meses) {
+            $anio = (string) $anio;
+            $meses = is_array($meses) ? $meses : [];
+            $limpios = $this->sanitizeMonths($meses);
+            if ($limpios) {
+                $out[$anio] = $limpios;
+            }
+        }
+    }
+    // Caso arreglo [{anio:2022, meses:[...]}]
+    elseif (is_array($input)) {
+        foreach ($input as $row) {
+            if (!is_array($row)) continue;
+            $anio = isset($row['anio']) ? (string) $row['anio'] : null;
+            $meses = isset($row['meses']) && is_array($row['meses']) ? $row['meses'] : [];
+            if ($anio) {
+                $limpios = $this->sanitizeMonths($meses);
+                if ($limpios) {
+                    $out[$anio] = $limpios;
+                }
+            }
+        }
+    }
+
+    // Ordena por año asc para consistencia
+    if ($out) {
+        ksort($out);
+    }
+
+    return $out ?: [];
+}
+
+/** Valida meses 1..12, ints, únicos, ordenados asc */
+private function sanitizeMonths(array $meses): array
+{
+    $meses = array_map('intval', $meses);
+    $meses = array_values(array_unique(array_filter($meses, fn($m) => $m >= 1 && $m <= 12)));
+    sort($meses);
+    return $meses;
+}
 
     /** Elimina (opcional) */
     public function destroy(Revision $revision)

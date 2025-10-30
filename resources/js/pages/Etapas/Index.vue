@@ -120,7 +120,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Usuario</label>
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Abogado</label>
           <select v-model="form.abogado_id"
                   class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700">
             <option value="">—</option>
@@ -129,10 +129,10 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Rol</label>
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-600">Rol(opcional)</label>
           <input v-model="form.rol" type="text"
                  class="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
-                 placeholder="ABOGADO">
+                 placeholder="Mensajero">
         </div>
 
         <div class="md:col-span-2">

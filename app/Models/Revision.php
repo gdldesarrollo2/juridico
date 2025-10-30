@@ -24,8 +24,28 @@ class Revision extends Model
     'rev_secuencial' => 'boolean',
   ];
 // (opcional) si quieres que siempre viaje al front:
-protected $appends = ['periodo_etiqueta'];
+protected $appends = ['periodo_etiqueta','ultima_etapa'];
+ public function getTipoRevisionAttribute(): ?string
+    {
+        return match (true) {
+            $this->rev_gabinete     => 'gabinete',
+            $this->rev_domiciliaria => 'domiciliaria',
+            $this->rev_electronica  => 'electronica',
+            $this->rev_secuencial   => 'secuencial',
+            default => null,
+        };
+    }
 
+    public function getTipoRevisionLegibleAttribute(): string
+    {
+        $map = [
+            'gabinete'    => 'Gabinete',
+            'domiciliaria'=> 'Domiciliaria',
+            'electronica' => 'Electrónica',
+            'secuencial'  => 'Secuencial',
+        ];
+        return $map[$this->tipo_revision] ?? '—';
+    }
 public function getPeriodoEtiquetaAttribute(): string
 {
     if (!is_array($this->periodos) || empty($this->periodos)) {
@@ -58,4 +78,34 @@ public function empresa()
   public function usuario(){ return $this->belongsTo(User::class,'usuario_id'); }
   public function etiquetas(){ return $this->belongsToMany(Etiqueta::class, 'etiqueta_revision'); }
   public function etapas(){ return $this->hasMany(RevisionEtapa::class)->orderBy('fecha_inicio','desc'); }
+public function ultimaEtapa()
+{
+    return $this->hasOne(RevisionEtapa::class, 'revision_id')
+        ->orderByDesc('fecha_inicio')
+        ->orderByDesc('id');
+}
+
+    /** Scope de filtros */
+    public function scopeFilter($q, array $f)
+    {
+        return $q
+            ->when(!empty($f['tipo']), function($q) use ($f) {
+                // según cómo guardes el tipo:
+                // si usas columna 'tipo_revision' con valores: gabinete|domiciliaria|electronica|secuencial
+                $q->where('tipo_revision', $f['tipo']);
+            })
+            ->when(!empty($f['sociedad_id']), fn($q) => $q->where('idempresa', $f['sociedad_id']))
+            ->when(!empty($f['autoridad_id']), fn($q) => $q->where('autoridad_id', $f['autoridad_id']))
+            ->when(!empty($f['usuario_id']), fn($q) => $q->where('usuario_id', $f['usuario_id']))
+            ->when(!empty($f['estatus']), fn($q) => $q->where('estatus', $f['estatus']))
+            ->when(!empty($f['q']), function($q) use ($f) {
+                $texto = trim($f['q']);
+                $q->where(function($qq) use ($texto) {
+                    $like = "%{$texto}%";
+                    $qq->where('observaciones', 'like', $like)
+                       ->orWhere('aspectos', 'like', $like)
+                       ->orWhere('compulsas', 'like', $like); // agrega o quita campos a gusto
+                });
+            });
+    }  
 }

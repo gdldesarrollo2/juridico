@@ -154,14 +154,18 @@ public function store(Request $request)
         'numero_expediente'    => ['required','string','max:255'],
         'estatus'              => ['required','in:juicio,autorizado,en_proceso,concluido'],
         'abogado_id'           => ['required','exists:abogados,id'],
-        // ← NUEVO
-        'periodos'              => ['required','array','min:1'],
-        'periodos.*.anio'       => ['required','integer','between:2000,2100','distinct'],
-        'periodos.*.meses'      => ['required','array','min:1'],
-        'periodos.*.meses.*'   => ['required', 'integer', 'between:1,12']
-        ]);
 
-    // normaliza a mapa {"2024":[1,2], "2025":[3,4]}
+        'periodos'             => ['required','array','min:1'],
+        'periodos.*.anio'      => ['required','integer','between:2000,2100','distinct'],
+        'periodos.*.meses'     => ['required','array','min:1'],
+        'periodos.*.meses.*'   => ['required','integer','between:1,12'],
+
+        // ← MULTISELECT: el nombre debe coincidir con la vista
+        'etiquetas'            => ['array'],
+        'etiquetas.*'          => ['integer','exists:etiquetas,id'],
+    ]);
+
+    // normaliza periodos
     $periodosMapa = [];
     foreach ($validated['periodos'] as $p) {
         $anio  = (string) $p['anio'];
@@ -170,18 +174,32 @@ public function store(Request $request)
         $periodosMapa[$anio] = $meses;
     }
 
+    // separamos etiquetas para pivot y evitamos meterlas al create()
+    $idsEtiquetas = array_map('intval', $validated['etiquetas'] ?? []);
     $data = $validated;
     $data['periodos'] = $periodosMapa;
-    $abogadoId = $validated['abogado_id'] ?? null;
-    // si quieres deprecar fecha_inicio:
-    // $data['fecha_inicio'] = null;
+    unset($data['etiquetas']); // <- importante si usas $fillable
 
-    $juicio = Juicio::create($data);
-    JuicioAbogadoService::setAbogado($juicio, $abogadoId, $request->user()?->id, 'Asignación inicial');
+    $abogadoId = $validated['abogado_id'];
+
+    DB::transaction(function () use ($data, $idsEtiquetas, $abogadoId, $request) {
+        $juicio = Juicio::create($data);
+
+        // Guardado en pivot
+        $juicio->etiquetas()->sync($idsEtiquetas);
+
+        JuicioAbogadoService::setAbogado(
+            $juicio,
+            $abogadoId,
+            $request->user()?->id,
+            'Asignación inicial'
+        );
+    });
 
     return redirect()->route('juicios.index')
-        ->with('success', 'Juicio creado correctamente.');
+        ->with('success','Juicio creado correctamente.');
 }
+
 
  // Formulario de edición
 public function edit(Juicio $juicio)

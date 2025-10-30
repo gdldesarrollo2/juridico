@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { useForm, Link } from '@inertiajs/vue3'
+import { useForm, Link,usePage  } from '@inertiajs/vue3'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
-
+const page = usePage<{ flash: { success?: string } }>()
 const props = defineProps<{
   revision: {
     id: number
@@ -28,7 +28,7 @@ const props = defineProps<{
 
 // inicializa el formulario usando props.revision (ya no truena)
 const form = useForm({
-  empresa_id: props.revision.idempresa ?? '',
+  idempresa: props.revision.idempresa ?? '',
   usuario_id: props.revision.usuario_id ?? '',
   autoridad_id: props.revision.autoridad_id ?? '',
   tipo_revision: props.revision.tipo_revision,
@@ -82,19 +82,23 @@ function submit() {
   <TopNavLayout></TopNavLayout>
 
   <AppLayout>
+     <div v-if="page.props.flash?.success" 
+       class="mb-4 p-2 rounded bg-green-100 text-green-700">
+    {{ page.props.flash.success }}
+  </div>
     <form @submit.prevent="submit" class="max-w-4xl mx-auto p-6 bg-white rounded shadow space-y-4">
       <h1 class="text-2xl font-semibold">Editar revisión #{{ props.revision.id }}</h1>
 
       <!-- Sociedad -->
       <div>
           <label class="block text-sm font-medium mb-1">Sociedad</label>
-          <select v-model="form.empresa_id" class="w-full border rounded px-3 py-2">
+          <select v-model="form.idempresa" class="w-full border rounded px-3 py-2">
             <option value="">Seleccione…</option>
             <option v-for="s in empresas" :key="s.idempresa" :value="s.idempresa">
               {{ s.razonsocial }}
             </option>
           </select>
-          <p v-if="form.errors.empresa_id" class="text-red-600 text-xs mt-1">{{ form.errors.empresa_id }}</p>
+          <p v-if="form.errors.idempresa" class="text-red-600 text-xs mt-1">{{ form.errors.idempresa }}</p>
       </div>
 
       <!-- Autoridad -->
@@ -151,7 +155,7 @@ function submit() {
       <div><label class="block text-sm font-medium">Objeto</label><input v-model="form.objeto" class="mt-1 w-full border rounded px-3 py-2" /></div>
       <div><label class="block text-sm font-medium">Observaciones</label><textarea v-model="form.observaciones" class="mt-1 w-full border rounded px-3 py-2" /></div>
       <div><label class="block text-sm font-medium">Aspectos</label><textarea v-model="form.aspectos" class="mt-1 w-full border rounded px-3 py-2" /></div>
-      <div><label class="block text-sm font-medium">Compulsas</label><textarea v-model="form.compulsas" class="mt-1 w-full border rounded px-3 py-2" /></div>
+      <div><label class="block text-sm font-medium">Empresa compulsada</label><textarea v-model="form.compulsas" class="mt-1 w-full border rounded px-3 py-2" /></div>
 
       <!-- Estatus -->
       <div>

@@ -23,6 +23,7 @@ class RevisionEtapa extends Model
         'fecha_inicio'      => 'date',
         'fecha_vencimiento' => 'date',
     ];
+    
     public function usuarioCaptura(){ return $this->belongsTo(User::class,'usuario_captura_id'); }
     public function revision(){ return $this->belongsTo(Revision::class); }
     public function abogado(){ return $this->belongsTo(Abogado::class); }
