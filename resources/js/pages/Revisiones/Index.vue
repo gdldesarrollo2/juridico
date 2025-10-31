@@ -10,7 +10,7 @@ type OptIdName = { id: number; name: string }
 
 type Row = {
   id: number
-  tipo: string
+  t: string
   sociedad: string | null
   sociedad_id: number | null
   autoridad: string | null
@@ -43,8 +43,7 @@ const props = defineProps<{
 
 // --- estado de filtros (reactivo) ---
 const f = reactive({
-  tipo: props.filters.tipo ?? '',
-  sociedad_id: props.filters.sociedad_id ? String(props.filters.sociedad_id) : '',
+  t: props.filters.t ?? '',             // antes: tipo  sociedad_id: props.filters.sociedad_id ? String(props.filters.sociedad_id) : '',
   usuario_id: props.filters.usuario_id ? String(props.filters.usuario_id) : '',
   autoridad_id: props.filters.autoridad_id ? String(props.filters.autoridad_id) : '',
   estatus: props.filters.estatus ?? '',
@@ -52,8 +51,8 @@ const f = reactive({
 })
 
 function cleanParams() {
-  const p: Record<string, string> = {}
-  if (f.tipo) p.tipo = f.tipo
+  const p: any = {}
+  if (f.t) p.t = f.t                   // antes: tipo
   if (f.sociedad_id) p.sociedad_id = f.sociedad_id
   if (f.usuario_id) p.usuario_id = f.usuario_id
   if (f.autoridad_id) p.autoridad_id = f.autoridad_id
@@ -61,6 +60,7 @@ function cleanParams() {
   if (f.q) p.q = f.q
   return p
 }
+
 
 function push() {
   router.get(route('revisiones.index'), cleanParams(), {
@@ -70,12 +70,12 @@ function push() {
   })
 }
 
-watch(() => [f.tipo, f.sociedad_id, f.usuario_id, f.autoridad_id, f.estatus], push)
+watch(() => [f.t, f.sociedad_id, f.usuario_id, f.autoridad_id, f.estatus], push)
 const debouncedSearch = debounce(push, 400)
 watch(() => f.q, debouncedSearch)
 
 function resetFilters() {
-  f.tipo = ''
+  f.t = ''
   f.sociedad_id = ''
   f.usuario_id = ''
   f.autoridad_id = ''
@@ -101,12 +101,23 @@ const $can = (perm: string) => canList.value.includes(perm)
 
 <template>
   <TopNavLayout></TopNavLayout>
-  <br><br>
+  <br>
+  <Link
+  v-if="$can && $can('crear revisiones')"
+  :href="route('revisiones.create')"
+  class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+>
+  Nueva revisión
+</Link><br><br>
   <div class="mb-4 grid grid-cols-1 md:grid-cols-6 gap-3">
-    <select v-model="f.tipo" class="border rounded px-2 py-1">
-      <option value="">Tipo…</option>
-      <option v-for="t in options.tipos" :key="t.value" :value="t.value">{{ t.label }}</option>
-    </select>
+   <select v-model="f.t" class="border rounded px-2 py-1">
+  <option value="">Tipo…</option>
+  <option value="gabinete">Gabinete</option>
+  <option value="domiciliaria">Domiciliaria</option>
+  <option value="electronica">Electrónica</option>
+  <option value="secuencial">Secuencial</option>
+</select>
+
 
     <select v-model="f.sociedad_id" class="border rounded px-2 py-1">
       <option value="">Sociedad…</option>

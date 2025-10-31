@@ -116,7 +116,7 @@ function onSubmit() {
 
     <!-- Observaciones monto -->
     <div>
-      <label class="block text-sm font-medium">Observaciones monto</label>
+      <label class="block text-sm font-medium">Observaciones impuesto</label>
       <textarea v-model="form.observaciones_monto" class="border rounded px-2 py-1 w-full"></textarea>
       <p v-if="form.errors.observaciones_monto" class="text-red-600 text-xs">{{ form.errors.observaciones_monto }}</p>
 

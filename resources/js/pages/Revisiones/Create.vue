@@ -20,12 +20,14 @@ const aniosDisponibles = computed(() => {
   for (let i = y + 1; i >= y - 20; i--) arr.push(i)
   return arr
 })
+type Opcion = { id: number; nombre: string }
 const props = defineProps<{
   // Catálogo que viene del controlador: { gabinete: string[], domiciliaria: string[], ... }
   catalogoRevision: Record<TipoRevision, string[]>
   // Catálogos de selects (pon los nombres reales que ya usas)
-  empresas: Array<{ idempresa: number; razonsocial: string }>
-  autoridades: Array<{ id: number; nombre: string }>
+   options?: { sociedades?: Opcion[]; autoridades?: Opcion[] }
+  sociedades?: Opcion[]
+  autoridades?: Opcion[]
   usuarios?: Array<{ id: number; name: string }>
   estatuses?: Array<{ value: string; label: string }>
   // Valores por defecto opcionales
@@ -35,6 +37,10 @@ const props = defineProps<{
     autoridad_id?: number
   }
 }>()
+// Normalizamos: si vienen en options las tomamos; si no, planas
+const sociedades = computed<Opcion[]>(() => props.options?.sociedades ?? props.sociedades ?? [])
+const autoridades = computed<Opcion[]>(() => props.options?.autoridades ?? props.autoridades ?? [])
+
 
 const form = useForm({
   empresa_id: props.defaults?.empresa_id ?? '',
@@ -96,9 +102,19 @@ function mesesDe(anio:number) {
 //   }
 // })
 
-function submit() {
-  form.post(route('revisiones.store'))
+// en tu Create.vue
+function submit () {
+  form.transform((data) => ({
+    ...data,
+    idempresa: form.idempresa === '' ? null : Number(form.idempresa),
+    autoridad_id: form.autoridad_id === '' ? null : Number(form.autoridad_id),
+    periodos: form.periodos.map(p => ({
+      anio: Number(p.anio),
+      meses: Array.isArray(p.meses) ? p.meses.map(Number) : []
+    })),
+  })).post(route('revisiones.store'))
 }
+
 </script>
 
 <template>
@@ -148,13 +164,23 @@ function submit() {
       <div class="grid md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">Sociedad</label>
-          <select v-model="form.empresa_id" class="w-full border rounded px-3 py-2">
-            <option value="">Seleccione…</option>
-            <option v-for="s in empresas" :key="s.idempresa" :value="s.idempresa">
-              {{ s.razonsocial }}
-            </option>
-          </select>
-          <p v-if="form.errors.empresa_id" class="text-red-600 text-xs mt-1">{{ form.errors.empresa_id }}</p>
+         <!-- Sociedad -->
+<select
+  v-model="form.idempresa"
+  @change="form.idempresa = toNumberOrEmpty(form.idempresa)"
+  class="w-full border rounded px-3 py-2"
+>
+  <option value="">Seleccione…</option>
+  <option
+    v-for="s in sociedades"
+    :key="s.id"
+    :value="s.id"
+  >
+    {{ s.nombre }}
+  </option>
+</select>
+<p v-if="form.errors.idempresa" class="text-sm text-red-600 mt-1">{{ form.errors.idempresa }}</p>
+
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Autoridad</label>
@@ -232,7 +258,7 @@ function submit() {
 
       <!-- Observaciones -->
       <div>
-        <label class="block text-sm font-medium mb-1">Observaciones</label>
+        <label class="block text-sm font-medium mb-1">Observaciones impuesto</label>
         <input type="text" v-model="form.observaciones" class="w-full border rounded px-3 py-2" placeholder="Escriba…" />
         <p v-if="form.errors.observaciones" class="text-red-600 text-xs mt-1">{{ form.errors.observaciones }}</p>
       </div>

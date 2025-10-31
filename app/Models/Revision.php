@@ -17,11 +17,11 @@ class Revision extends Model
   ];
 
   protected $casts = [
-    'periodos'         => 'array',   // <- JSON como array/objeto
-    'rev_gabinete' => 'boolean',
-    'rev_domiciliaria' => 'boolean',
-    'rev_electronica' => 'boolean',
-    'rev_secuencial' => 'boolean',
+     'rev_gabinete'     => 'bool',
+    'rev_domiciliaria' => 'bool',
+    'rev_electronica'  => 'bool',
+    'rev_secuencial'   => 'bool',
+    'periodos'         => 'array',
   ];
 // (opcional) si quieres que siempre viaje al front:
 protected $appends = ['periodo_etiqueta','ultima_etapa'];
@@ -86,26 +86,36 @@ public function ultimaEtapa()
 }
 
     /** Scope de filtros */
-    public function scopeFilter($q, array $f)
-    {
-        return $q
-            ->when(!empty($f['tipo']), function($q) use ($f) {
-                // según cómo guardes el tipo:
-                // si usas columna 'tipo_revision' con valores: gabinete|domiciliaria|electronica|secuencial
-                $q->where('tipo_revision', $f['tipo']);
-            })
-            ->when(!empty($f['sociedad_id']), fn($q) => $q->where('idempresa', $f['sociedad_id']))
-            ->when(!empty($f['autoridad_id']), fn($q) => $q->where('autoridad_id', $f['autoridad_id']))
-            ->when(!empty($f['usuario_id']), fn($q) => $q->where('usuario_id', $f['usuario_id']))
-            ->when(!empty($f['estatus']), fn($q) => $q->where('estatus', $f['estatus']))
-            ->when(!empty($f['q']), function($q) use ($f) {
-                $texto = trim($f['q']);
-                $q->where(function($qq) use ($texto) {
-                    $like = "%{$texto}%";
-                    $qq->where('observaciones', 'like', $like)
-                       ->orWhere('aspectos', 'like', $like)
-                       ->orWhere('compulsas', 'like', $like); // agrega o quita campos a gusto
-                });
-            });
-    }  
+public function scopeFilter($q, array $f)
+{
+    $map = [
+        'gabinete'     => 'rev_gabinete',
+        'domiciliaria' => 'rev_domiciliaria',
+        'electronica'  => 'rev_electronica',
+        'secuencial'   => 'rev_secuencial',
+    ];
+
+    // nota: ahora leemos $f['t'] en vez de 'tipo'
+    $q->when(!empty($f['t']), function ($q) use ($f, $map) {
+        $tipo = strtolower(trim((string)$f['t']));
+        if (isset($map[$tipo])) {
+            $q->where($map[$tipo], 1);
+        }
+    });
+
+    $q->when(!empty($f['sociedad_id']), fn($q) => $q->where('idempresa', $f['sociedad_id']));
+    $q->when(!empty($f['autoridad_id']), fn($q) => $q->where('autoridad_id', $f['autoridad_id']));
+    $q->when(!empty($f['usuario_id']),   fn($q) => $q->where('usuario_id', $f['usuario_id']));
+    $q->when(!empty($f['estatus']),      fn($q) => $q->where('estatus', $f['estatus']));
+    $q->when(!empty($f['q']), function ($q) use ($f) {
+        $like = '%'.trim((string)$f['q']).'%';
+        $q->where(function ($qq) use ($like) {
+            $qq->where('observaciones','like',$like)
+               ->orWhere('aspectos','like',$like)
+               ->orWhere('compulsas','like',$like);
+        });
+    });
+}
+
+
 }
