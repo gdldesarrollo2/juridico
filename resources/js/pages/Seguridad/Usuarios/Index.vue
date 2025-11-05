@@ -16,7 +16,13 @@ const props = defineProps<{
               class="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 "
             >
               Roles de usuario
-            </Link><br>
+            </Link>
+             <Link
+        :href="route('users.roles.create')"
+        class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium"
+      >
+        Nuevo usuario
+      </Link><br>
     <table class="min-w-full text-sm bg-white rounded shadow">
       <thead class="bg-gray-100">
         <tr>

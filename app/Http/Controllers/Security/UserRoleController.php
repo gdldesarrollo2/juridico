@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password; // 👈 AÑADE ESTA
 
 class UserRoleController extends Controller
 {
@@ -50,4 +54,44 @@ class UserRoleController extends Controller
 
         return redirect()->route('users.roles.index')->with('success', 'Rol(es) asignado(s) correctamente.');
     }
+     // ========== NUEVO: formulario de creación ==========
+   public function create()
+{
+    $roles = Role::orderBy('name')->pluck('name');
+
+    return Inertia::render('Seguridad/Usuarios/Create', [
+        'roles' => $roles,
+    ]);
+}
+
+    // ========== NUEVO: guardar usuario ==========
+    public function store(Request $request)
+    {
+       $data = $request->validate([
+         'name'  => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+        'role'  => ['required', 'string', 'exists:roles,name'],
+        ]);
+
+        // Generamos una contraseña aleatoria (no se la diremos al usuario)
+        $randomPassword = Str::random(16);
+
+        // Creamos al usuario
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($randomPassword),
+        ]);
+
+        // Asignamos rol
+        $user->assignRole($data['role']);
+
+        // Enviamos link de "restablecer contraseña" para que el propio usuario defina la suya.
+        Password::sendResetLink(['email' => $user->email]);
+
+        return redirect()
+            ->route('users.roles.index')
+            ->with('success', 'Usuario creado. Se envió un correo para que defina su contraseña.');
+    }
+
 }

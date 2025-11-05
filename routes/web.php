@@ -137,7 +137,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('roles/{role}',        [RoleController::class, 'update'])->whereNumber('role')->name('roles.update');
 
         Route::get('usuarios',            [UserRoleController::class, 'index'])->name('users.roles.index');
-        Route::get('usuarios/{user}/rol', [UserRoleController::class, 'edit'])->whereNumber('user')->name('users.roles.edit');
+         // NUEVO: formulario para crear usuario
+        Route::get('usuarios/create',       [UserRoleController::class, 'create'])->name('users.roles.create');
+        Route::get('usuarios/{user}/rol',   [UserRoleController::class, 'edit'])->name('users.roles.edit');
+        // NUEVO: guardar usuario
+        Route::post('usuarios', [UserRoleController::class, 'store'])->name('users.roles.store');  // 👈 ESTA ES LA CLAVE
+    //         Route::get('usuarios/{user}/rol', [UserRoleController::class, 'edit'])->whereNumber('user')->name('users.roles.edit');
         Route::put('usuarios/{user}/rol', [UserRoleController::class, 'update'])->whereNumber('user')->name('users.roles.update');
     });
 });
