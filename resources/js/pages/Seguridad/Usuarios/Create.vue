@@ -28,7 +28,7 @@ const submit = () => {
           Registra un usuario y asígnale un rol para acceder al sistema.
         </p>
       </div>
-
+      
       <Link
         :href="route('users.roles.index')"
         class="text-sm font-medium text-slate-500 hover:text-slate-800 transition"

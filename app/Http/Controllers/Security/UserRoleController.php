@@ -10,7 +10,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password; // 👈 AÑADE ESTA
+use Illuminate\Support\Facades\Password; 
 
 class UserRoleController extends Controller
 {
@@ -65,33 +65,43 @@ class UserRoleController extends Controller
 }
 
     // ========== NUEVO: guardar usuario ==========
-    public function store(Request $request)
-    {
-       $data = $request->validate([
-         'name'  => ['required', 'string', 'max:255'],
+   public function store(Request $request)
+{
+    // 1) Validación
+    $data = $request->validate([
+        'name'  => ['required', 'string', 'max:255'],
         'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
         'role'  => ['required', 'string', 'exists:roles,name'],
-        ]);
+    ]);
 
-        // Generamos una contraseña aleatoria (no se la diremos al usuario)
-        $randomPassword = Str::random(16);
+    // 2) Generar contraseña aleatoria (texto plano SOLO para el correo)
+    $plainPassword = Str::random(12); // puedes cambiar longitud si quieres
 
-        // Creamos al usuario
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($randomPassword),
-        ]);
+    // 3) Crear usuario con la contraseña hasheada
+    $user = User::create([
+        'name'     => $data['name'],
+        'email'    => $data['email'],
+        'password' => Hash::make($plainPassword),
+    ]);
 
-        // Asignamos rol
-        $user->assignRole($data['role']);
+    // 4) Asignar rol
+    $user->assignRole($data['role']);
 
-        // Enviamos link de "restablecer contraseña" para que el propio usuario defina la suya.
-        Password::sendResetLink(['email' => $user->email]);
+    // 5) Enviar correo con sus datos de acceso
+    //    Usamos una vista Blade: resources/views/emails/nuevo_usuario.blade.php
+    Mail::send('emails.nuevo_usuario', [
+        'user'     => $user,
+        'password' => $plainPassword,
+        'role'     => $data['role'],
+        'loginUrl' => route('login'), // o url('/login') según tus rutas
+    ], function ($message) use ($user) {
+        $message->to($user->email, $user->name)
+            ->subject('Tus accesos al sistema jurídico');
+    });
 
-        return redirect()
-            ->route('users.roles.index')
-            ->with('success', 'Usuario creado. Se envió un correo para que defina su contraseña.');
-    }
-
+    // 6) Redirigir de regreso al listado
+    return redirect()
+        ->route('users.roles.index')
+        ->with('success', 'Usuario creado y credenciales enviadas por correo.');
+}
 }

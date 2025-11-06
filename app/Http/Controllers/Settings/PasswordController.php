@@ -15,25 +15,26 @@ class PasswordController extends Controller
     /**
      * Show the user's password settings page.
      */
-    public function edit(): Response
+  // Mostrar formulario
+    public function edit()
     {
-        return Inertia::render('settings/Password');
+        return Inertia::render('auth/ChangePassword');
     }
 
-    /**
-     * Update the user's password.
-     */
-    public function update(Request $request): RedirectResponse
+    // Guardar nueva contraseña
+    public function update(Request $request)
     {
         $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
+            'current_password' => ['required', 'current_password'], // regla de Laravel
+            'password'         => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'current_password.current_password' => 'La contraseña actual no es correcta.',
         ]);
 
-        $request->user()->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+        $user = $request->user();
+        $user->password = Hash::make($validated['password']);
+        $user->save();
 
-        return back();
+        return back()->with('success', 'Tu contraseña se actualizó correctamente.');
     }
 }

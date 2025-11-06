@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Settings\PasswordController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,7 +15,6 @@ use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\Security\RoleController;
 use App\Http\Controllers\Security\UserRoleController;
-
 // Debug de roles/permisos
 Route::get('/debug-role', function () {
     $u = auth()->user();
@@ -160,7 +160,13 @@ Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignar
 // POST para guardar
 Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
     ->name('abogados.reasignar.store');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/password/change', [PasswordController::class, 'edit'])
+        ->name('password.edit');
 
+    Route::put('/password/change', [PasswordController::class, 'update'])
+        ->name('password.update');
+});
 // Otros requires
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

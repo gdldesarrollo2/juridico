@@ -49,9 +49,23 @@ const linkIdle   = 'text-gray-700 hover:bg-gray-200'
 
       <!-- Right zone (usuario / acciones) -->
       <div class="hidden md:flex items-center gap-3">
-        <span class="text-sm text-gray-600 truncate max-w-[200px]">
-          {{ ($page.props as any).auth?.user?.name ?? '' }}
-        </span>
+      <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-800">
+        {{ $page.props.auth.user?.name }}
+      </span>
+
+      <!-- debajo del nombre o en un menú -->
+    </div>
+
+    <!-- Por ejemplo en un dropdown de usuario -->
+    <div class="mt-1 text-xs">
+      <Link
+        :href="route('password.edit')"
+        class="text-indigo-600 hover:text-indigo-800"
+      >
+        Cambiar contraseña
+      </Link>
+    </div>
         <!-- Ejemplo botón acción -->
        <Link 
   :href="route('logout')" 

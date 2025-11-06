@@ -11,18 +11,19 @@ const props = defineProps<{
 
   <div class="p-6 space-y-6">
     <h1 class="text-2xl font-semibold">Usuarios y Roles</h1>
-     <Link
+    <div class="flex space-x-4">
+    <Link
               :href="route('roles.index')"
-              class="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 "
+              class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium"
             >
               Roles de usuario
             </Link>
              <Link
         :href="route('users.roles.create')"
-        class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium"
+        class=" px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium"
       >
         Nuevo usuario
-      </Link><br>
+      </Link></div> 
     <table class="min-w-full text-sm bg-white rounded shadow">
       <thead class="bg-gray-100">
         <tr>
