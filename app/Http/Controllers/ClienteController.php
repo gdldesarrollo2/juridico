@@ -41,10 +41,11 @@ class ClienteController extends Controller
     // aquí se asigna automáticamente el usuario de la sesión
     $data['usuario_id'] = auth()->id();
 
-        Cliente::create($data);
+         $cliente = Cliente::create($data);
 
-        return redirect()
-            ->route('clientes.index')
-            ->with('success', 'Cliente creado correctamente.');
+        return back()->with('clienteNuevo', [
+        'id'     => $cliente->id,
+        'nombre' => $cliente->nombre,
+    ]);
     }
 }

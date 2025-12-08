@@ -15,10 +15,11 @@ use App\Models\{Cliente,Autoridad,Etiqueta,Abogado};
             ['nombre' => 'Cliente Ejemplo'],
         ]);
 
-        Autoridad::insert([
-            ['nombre' => 'SAT Vallarta'],
-            ['nombre' => 'SAT Guadalajara'],
-        ]);
+       Autoridad::insert([
+    ['nombre' => 'SAT GDL', 'estatus' => 'activo'],
+    ['nombre' => 'SAT VALLARTA', 'estatus' => 'activo'],
+]);
+
 
         Abogado::insert([
             ['nombre' => 'JUAN'],

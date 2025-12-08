@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\AutoridadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,7 +16,7 @@ use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\Security\RoleController;
 use App\Http\Controllers\Security\UserRoleController;
 
-// Debug de roles/permisos
+
 Route::get('/debug-role', function () {
     $u = auth()->user();
     return [
@@ -160,6 +161,8 @@ Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignar
 // POST para guardar
 Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
     ->name('abogados.reasignar.store');
+Route::post('/autoridades', [AutoridadController::class, 'store'])->name('autoridades.store');
+
 
 // Otros requires
 require __DIR__.'/settings.php';
