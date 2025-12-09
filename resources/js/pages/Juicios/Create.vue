@@ -22,7 +22,7 @@ const props = defineProps<{
 // FORMULARIO PRINCIPAL
 const form = useForm({
   nombre: '',
-  tipo: 'nulidad',
+  tipo: '',
   cliente_id: '',
   autoridad_id: '',
   fecha_inicio: '',
@@ -96,7 +96,7 @@ function formatNumber(val: number | string) {
         + Agregar cliente
       </button>
       <button @click="mostrarModalAutoridad = true"
-        class="px-4 py-2 bg-indigo-600 text-white rounded">
+        class="m-2 px-4 py-2 bg-indigo-600 text-white rounded">
   + Agregar autoridad
 </button>
 
