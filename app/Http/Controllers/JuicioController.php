@@ -149,7 +149,7 @@ public function store(Request $request)
         'monto'                => ['required','numeric','min:0'],
         'observaciones_monto'  => ['required','string'],
         'resolucion_impugnada' => ['required','string','max:255'],
-        'garantia'             => ['required','string','max:255'],
+       // 'garantia'             => ['string','max:255'],
         'numero_juicio'        => ['required','string','max:255'],
         'numero_expediente'    => ['required','string','max:255'],
         'estatus'              => ['required','in:juicio,autorizado,en_proceso,concluido'],

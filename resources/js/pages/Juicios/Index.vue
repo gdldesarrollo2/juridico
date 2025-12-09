@@ -221,7 +221,7 @@ const estatusClass = (s:string) => {
         <button @click="clearFilters" class="px-3 py-1 rounded border">Limpiar</button>
       </div>
     </div>
-    <Link :href="route('juicios.create')" class="px-3 py-1 rounded bg-indigo-600 text-white">Nuevo Juicio</Link><br>
+    <Link :href="route('juicios.create')" class="px-3 py-1 rounded bg-indigo-600 text-white">Asunto o Expediente</Link><br>
 
     <!-- Tabla -->
     <div class="bg-white rounded-xl shadow overflow-x-auto">

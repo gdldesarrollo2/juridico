@@ -69,10 +69,13 @@ function onSubmit() {
 
     <!-- Tipo -->
     <div>
-      <label class="block text-sm font-medium">Tipo</label>
+      <label class="block text-sm font-medium">Juicio Contencioso Administrativo</label>
       <select v-model="form.tipo" class="border rounded px-2 py-1 w-full">
+        <option value="">-</option>
         <option value="nulidad">Nulidad</option>
         <option value="revocacion">Revocación</option>
+        <option value="revocacion">Amparo</option>
+
       </select>
 
     </div>
@@ -157,8 +160,6 @@ function onSubmit() {
     <div>
       <label class="block text-sm font-medium">Estatus</label>
       <select v-model="form.estatus" class="border rounded px-2 py-1 w-full">
-        <option value="juicio">Juicio</option>
-        <option value="autorizado">Autorizado</option>
         <option value="en_proceso">En proceso</option>
         <option value="concluido">Concluido</option>
       </select> 
@@ -178,7 +179,7 @@ function onSubmit() {
     <!-- Etiquetas -->
     <div>
       <label class="block text-sm font-medium">Etiquetas</label>
-      <select v-model="form.etiquetas" multiple class="border rounded px-2 py-1 w-full">
+      <select v-model="form.etiquetas"  class="border rounded px-2 py-1 w-full">
         <option v-for="e in etiquetas" :key="e.id" :value="e.id">{{ e.nombre }}</option>
       </select>
 

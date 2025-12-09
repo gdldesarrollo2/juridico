@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+<<<<<<< HEAD
 use App\Http\Controllers\Settings\PasswordController;
+=======
+use App\Http\Controllers\AutoridadController;
+>>>>>>> vero
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,7 +19,12 @@ use App\Http\Controllers\RevisionEtapaController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\Security\RoleController;
 use App\Http\Controllers\Security\UserRoleController;
+<<<<<<< HEAD
 // Debug de roles/permisos
+=======
+
+
+>>>>>>> vero
 Route::get('/debug-role', function () {
     $u = auth()->user();
     return [
@@ -160,9 +169,14 @@ Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignar
 // POST para guardar
 Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
     ->name('abogados.reasignar.store');
+<<<<<<< HEAD
 Route::middleware(['auth'])->group(function () {
     Route::get('/password/change', [PasswordController::class, 'edit'])
         ->name('password.edit');
+=======
+Route::post('/autoridades', [AutoridadController::class, 'store'])->name('autoridades.store');
+
+>>>>>>> vero
 
     Route::put('/password/change', [PasswordController::class, 'update'])
         ->name('password.update');
