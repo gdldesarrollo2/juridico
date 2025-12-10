@@ -16,7 +16,6 @@ use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\Security\RoleController;
 use App\Http\Controllers\Security\UserRoleController;
 
-
 Route::get('/debug-role', function () {
     $u = auth()->user();
     return [
@@ -162,6 +161,8 @@ Route::get('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignar
 Route::post('abogados/{abogado}/reasignar', [AbogadoController::class, 'reasignarStore'])
     ->name('abogados.reasignar.store');
 Route::post('/autoridades', [AutoridadController::class, 'store'])->name('autoridades.store');
+//Route::get('/etapas/panel', [EtapaController::class, 'panel'])->name('etapas.panel');
+Route::get('/etapas/panel', [EtapaController::class, 'lista'])->name('etapas.lista');
 
 
 // Otros requires

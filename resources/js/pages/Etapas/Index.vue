@@ -85,7 +85,7 @@ const fmtDate = (v: any) => v ? new Intl.DateTimeFormat('es-MX').format(new Date
       <p class="mt-2 text-gray-600 dark:text-gray-600">
         ID JUICIO: #{{ juicio.id }}
         <span v-if="juicio.cliente"> CLIENTE: {{ juicio.cliente.nombre }}</span>
-        • <span class="capitalize">tipo: {{ juicio.tipo }}</span>
+        • <span class="capitalize">tipo: {{ juicio?.tipo }}</span>
       </p>
     </div>
 

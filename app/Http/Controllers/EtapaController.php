@@ -53,6 +53,82 @@ class EtapaController extends Controller
     {
         return self::CATALOGO_ETAPAS[$tipo] ?? [];
     }
+    public function lista(Request $request)
+{
+    $query = Etapa::with(['juicio.cliente'])
+        ->orderBy('fecha_vencimiento', 'asc');
+
+    // FILTROS
+    if ($request->filled('desde')) {
+        $query->whereDate('fecha_vencimiento', '>=', $request->desde);
+    }
+
+    if ($request->filled('hasta')) {
+        $query->whereDate('fecha_vencimiento', '<=', $request->hasta);
+    }
+
+    if ($request->filled('estatus')) {
+        $query->where('estatus', $request->estatus);
+    }
+
+    if ($request->filled('juicio')) {
+        $query->whereHas('juicio', function ($q) use ($request) {
+            $q->where('nombre', 'like', "%{$request->juicio}%");
+        });
+    }
+
+    if ($request->filled('cliente')) {
+        $query->whereHas('juicio.cliente', function ($q) use ($request) {
+            $q->where('id', $request->cliente);
+        });
+    }
+
+    return Inertia::render('Etapas/Lista', [
+        'etapas'  => $query->paginate(30)->withQueryString(),
+        'filters' => $request->only('desde', 'hasta', 'estatus', 'juicio', 'cliente'),
+        'clientes' => \App\Models\Cliente::orderBy('nombre')->get(['id','nombre']),
+    ]);
+}
+
+    public function panel(Request $request)
+    {
+        $query = Etapa::with(['juicio.cliente'])
+            ->orderBy('fecha_vencimiento', 'asc');
+
+        // Filtro por fecha desde
+        if ($request->filled('desde')) {
+            $query->whereDate('fecha_vencimiento', '>=', $request->desde);
+        }
+
+        // Filtro por fecha hasta
+        if ($request->filled('hasta')) {
+            $query->whereDate('fecha_vencimiento', '<=', $request->hasta);
+        }
+
+        // Filtro por estatus
+        if ($request->filled('estatus')) {
+            $query->where('estatus', $request->estatus);
+        }
+
+        // Filtro por nombre del juicio
+        if ($request->filled('juicio')) {
+            $query->whereHas('juicio', function($q) use ($request) {
+                $q->where('nombre', 'like', "%{$request->juicio}%");
+            });
+        }
+
+        // Filtro por cliente
+        if ($request->filled('cliente')) {
+            $query->whereHas('juicio.cliente', function($q) use ($request) {
+                $q->where('id', $request->cliente);
+            });
+        }
+
+        return Inertia::render('Etapas/Index', [
+            'etapas' => $query->paginate(30)->withQueryString(),
+            'filters' => $request->only('desde','hasta','estatus','juicio','cliente'),
+        ]);
+    }
 
     public function index(Juicio $juicio)
     {
