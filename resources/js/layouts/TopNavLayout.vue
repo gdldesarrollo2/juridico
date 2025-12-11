@@ -14,6 +14,7 @@ const nav = [
   { label: 'Revisiones',  to: '/revisiones' },
    { label: 'Calendario',  to: '/calendario' },
   { label: 'Usuarios',  to: '/seguridad/usuarios' },
+  { label: 'Etapas',  to: '/etapas/panel' }
 
   // agrega más aquí…
 ]

@@ -53,6 +53,102 @@ class EtapaController extends Controller
     {
         return self::CATALOGO_ETAPAS[$tipo] ?? [];
     }
+    public function lista(Request $request)
+{
+    $query = Etapa::with(['juicio.cliente'])
+        ->orderBy('fecha_vencimiento', 'asc');
+
+    // FILTROS
+    if ($request->filled('desde')) {
+        $query->whereDate('fecha_vencimiento', '>=', $request->desde);
+    }
+
+    if ($request->filled('hasta')) {
+        $query->whereDate('fecha_vencimiento', '<=', $request->hasta);
+    }
+
+    if ($request->filled('estatus')) {
+        $query->where('estatus', $request->estatus);
+    }
+
+    if ($request->filled('juicio')) {
+        $query->whereHas('juicio', function ($q) use ($request) {
+            $q->where('nombre', 'like', "%{$request->juicio}%");
+        });
+    }
+
+    if ($request->filled('cliente')) {
+        $query->whereHas('juicio.cliente', function ($q) use ($request) {
+            $q->where('id', $request->cliente);
+        });
+    }
+
+    return Inertia::render('Etapas/Lista', [
+        'etapas'  => $query->paginate(30)->withQueryString(),
+        'filters' => $request->only('desde', 'hasta', 'estatus', 'juicio', 'cliente'),
+        'clientes' => \App\Models\Cliente::orderBy('nombre')->get(['id','nombre']),
+    ]);
+}
+
+    public function panel(Request $request)
+    {
+     // 1) Base de la consulta
+    $query = Etapa::with(['juicio.cliente'])
+        ->orderBy('fecha_vencimiento', 'asc');
+
+    // 2) FILTROS
+    if ($request->filled('desde')) {
+        $query->whereDate('fecha_vencimiento', '>=', $request->desde);
+    }
+
+    if ($request->filled('hasta')) {
+        $query->whereDate('fecha_vencimiento', '<=', $request->hasta);
+    }
+
+    if ($request->filled('estatus')) {
+        $query->where('estatus', $request->estatus);
+    }
+
+    if ($request->filled('juicio')) {
+        $query->whereHas('juicio', function ($q) use ($request) {
+            $q->where('nombre', 'like', "%{$request->juicio}%");
+        });
+    }
+
+    if ($request->filled('cliente')) {
+        $query->whereHas('juicio.cliente', function ($q) use ($request) {
+            $q->where('id', $request->cliente);
+        });
+    }
+
+    // 3) Ejecutamos la consulta con paginación
+    $etapas = $query->paginate(30)->withQueryString();
+
+    // 4) Transformamos cada registro para enviar sólo lo que necesita Vue
+    $etapas->getCollection()->transform(function ($etapa) {
+        return [
+            'id'                => $etapa->id,
+            'juicio_id'         => $etapa->juicio_id,
+            'etapa'             => $etapa->etapa,
+            'fecha_inicio'      => $etapa->fecha_inicio,
+            'fecha_vencimiento' => $etapa->fecha_vencimiento,
+            'estatus'           => $etapa->estatus,
+            'comentarios'       => $etapa->comentarios,
+            'archivo_path'      => $etapa->archivo_path,
+
+            // 👇 Estos dos son los que te interesan para las columnas
+            'nombre_juicio'  => optional($etapa->juicio)->nombre,
+            'nombre_cliente' => optional(optional($etapa->juicio)->cliente)->nombre,
+        ];
+    });
+
+    // 5) Devolvemos a Inertia
+    return Inertia::render('Etapas/Lista', [
+        'etapas'   => $etapas,
+        'filters'  => $request->only('desde', 'hasta', 'estatus', 'juicio', 'cliente'),
+        'clientes' => Cliente::orderBy('nombre')->get(['id', 'nombre']),
+    ]);
+    }
 
     public function index(Juicio $juicio)
     {
