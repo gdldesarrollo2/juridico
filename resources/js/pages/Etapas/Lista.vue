@@ -2,7 +2,7 @@
 import { router,Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
-import Pagination from '@/Components/Pagination.vue'
+import Pagination from '@/components/Pagination.vue'
 
 const props = defineProps({
   etapas: Object,
