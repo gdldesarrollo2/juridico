@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
 // OJO: aquí pon el path real según tu proyecto
 // si tu carpeta es "components" en minúsculas, cambia esto:
-import Pagination from '@/Components/Pagination.vue'
+import Pagination from '@/components/Pagination.vue'
 
 const props = defineProps({
   etapas: Object,
