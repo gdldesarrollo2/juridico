@@ -1,8 +1,10 @@
 <script setup>
-import { router,Link } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
-import Pagination from '@/components/Pagination.vue'
+// OJO: aquí pon el path real según tu proyecto
+// si tu carpeta es "components" en minúsculas, cambia esto:
+import Pagination from '@/Components/Pagination.vue'
 
 const props = defineProps({
   etapas: Object,
@@ -74,8 +76,10 @@ const fmtDate = (v) =>
       </div>
 
       <div class="flex items-end">
-        <button @click="buscar"
-                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        <button
+          @click="buscar"
+          class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        >
           Buscar
         </button>
       </div>
@@ -96,56 +100,74 @@ const fmtDate = (v) =>
           </tr>
         </thead>
 
-        <tbody>
-          <tr v-for="e in etapas.data" :key="e.id" class="border-t">
-            <td class="px-4 py-2">{{ fmtDate(e.fecha_vencimiento) }}</td>
+     <tbody>
+  <tr v-for="e in etapas.data" :key="e.id" class="border-t">
+    <!-- FECHA -->
+    <td class="px-4 py-2">
+      {{ fmtDate(e.fecha_vencimiento) }}
+    </td>
 
-            <td class="px-4 py-2">
-<Link :href="route('juicios.show', e.juicio_id)" class="text-blue-600 hover:underline">
-                 {{ e.juicio?.nombre ?? '—' }}
+    <!-- JUICIO -->
+    <td class="px-4 py-2">
+      <Link
+        :href="route('juicios.show', e.juicio_id)"
+        class="text-blue-600 hover:underline"
+      >
+        {{ e.nombre_juicio || '—' }}
+      </Link>
+    </td>
 
-              </Link>
-            </td>
+    <!-- CLIENTE -->
+    <td class="px-4 py-2">
+      {{ e.nombre_cliente || '—' }}
+    </td>
 
-            <td class="px-4 py-2">{{ e.juicio.cliente?.nombre ?? '—' }}</td>
+    <!-- ETAPA -->
+    <td class="px-4 py-2">
+      {{ e.etapa }}
+    </td>
 
-            <td class="px-4 py-2">{{ e.etapa }}</td>
+    <!-- ESTATUS -->
+    <td class="px-4 py-2">
+      <span
+        class="px-2 py-1 rounded text-xs"
+        :class="{
+          'bg-yellow-200': e.estatus === 'en_tramite',
+          'bg-blue-200': e.estatus === 'en_juicio',
+          'bg-green-200': e.estatus === 'concluido',
+          'bg-gray-300': e.estatus === 'cancelado',
+        }"
+      >
+        {{ e.estatus }}
+      </span>
+    </td>
 
-            <td class="px-4 py-2">
-              <span
-                class="px-2 py-1 rounded text-xs"
-                :class="{
-                  'bg-yellow-200': e.estatus === 'en_tramite',
-                  'bg-blue-200': e.estatus === 'en_juicio',
-                  'bg-green-200': e.estatus === 'concluido',
-                  'bg-gray-300': e.estatus === 'cancelado',
-                }"
-              >
-                {{ e.estatus }}
-              </span>
-            </td>
+    <!-- COMENTARIOS -->
+    <td class="px-4 py-2">
+      {{ e.comentarios || '—' }}
+    </td>
 
-            <td class="px-4 py-2">
-              {{ e.comentarios ?? '—' }}
-            </td>
+    <!-- ARCHIVO -->
+    <td class="px-4 py-2">
+      <a
+        v-if="e.archivo_path"
+        :href="`/storage/${e.archivo_path}`"
+        target="_blank"
+        class="text-blue-600 hover:underline"
+      >
+        Ver
+      </a>
+      <span v-else>—</span>
+    </td>
+  </tr>
 
-            <td class="px-4 py-2">
-              <a v-if="e.archivo_path"
-                 :href="`/storage/${e.archivo_path}`"
-                 target="_blank"
-                 class="text-blue-600 hover:underline">
-                Ver
-              </a>
-              <span v-else>—</span>
-            </td>
-          </tr>
+  <tr v-if="etapas.data.length === 0">
+    <td colspan="7" class="text-center py-4 text-gray-500">
+      No se encontraron etapas.
+    </td>
+  </tr>
+</tbody>
 
-          <tr v-if="etapas.data.length === 0">
-            <td colspan="7" class="text-center py-4 text-gray-500">
-              No se encontraron etapas.
-            </td>
-          </tr>
-        </tbody>
       </table>
     </div>
 

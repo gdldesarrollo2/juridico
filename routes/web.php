@@ -167,6 +167,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/password/change', [PasswordController::class, 'update'])
         ->name('password.update');
 });
+    Route::get('/etapas/panel', [EtapaController::class, 'panel'])->name('etapas.lista');
+
 // Otros requires
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

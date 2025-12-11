@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Abogado;
+use App\Models\Cliente;
 use App\Models\Juicio;
 use App\Models\Etapa;         // Modelo de la tabla etapas del juicio (ajusta el nombre si es distinto)
 use App\Models\Etiqueta;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Carbon\Carbon;
+
 
 class EtapaController extends Controller
 {
