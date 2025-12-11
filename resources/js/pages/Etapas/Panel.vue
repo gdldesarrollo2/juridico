@@ -50,8 +50,8 @@ function buscar() {
       <tbody>
         <tr v-for="e in props.etapas.data" :key="e.id">
           <td class="border p-2">{{ e.nombre }}</td>
-          <td class="border p-2">{{ e.juicio?.nombre }}</td>
-          <td class="border p-2">{{ e.juicio?.cliente?.nombre }}</td>
+          <td class="border p-2">{{ e.nombre_cliente ?? '-' }}</td>
+          <td class="border p-2">{{ e.nombre_juicio ?? '-'  }}</td>
           <td class="border p-2">{{ e.fecha_vencimiento }}</td>
           <td class="border p-2">
             <span :class="[

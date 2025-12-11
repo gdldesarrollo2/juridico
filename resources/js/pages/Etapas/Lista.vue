@@ -1,5 +1,5 @@
 <script setup>
-import { router } from '@inertiajs/vue3'
+import { router,Link } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import TopNavLayout from '@/layouts/TopNavLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
@@ -101,8 +101,9 @@ const fmtDate = (v) =>
             <td class="px-4 py-2">{{ fmtDate(e.fecha_vencimiento) }}</td>
 
             <td class="px-4 py-2">
-              <Link :href="route('juicios.show', e.juicio.id)" class="text-blue-600 hover:underline">
-                {{ e.juicio.nombre }}
+<Link :href="route('juicios.show', e.juicio_id)" class="text-blue-600 hover:underline">
+                 {{ e.juicio?.nombre ?? '—' }}
+
               </Link>
             </td>
 
